@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Timesheet Assistant</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>Matters</h2>
+                <button id="scan-btn" class="scan-btn">Scan Outlook</button>
+                <button id="export-btn" class="export-btn"
+                    style="margin-top: 10px; background-color: #1f6feb; border: none; color: white; padding: 8px 12px; border-radius: 6px; cursor: pointer; width: 100%;">Export
+                    to CSV</button>
+            </div>
+            <div id="matters-list" class="matters-list">
+                <!-- Matters will be populated here -->
+                <div class="loading-state">Loading matters...</div>
+            </div>
+        </aside>
+
+        <main class="chat-interface">
+            <header class="chat-header">
+                <h1>Timesheet Assistant</h1>
+            </header>
+
+            <div id="chat-history" class="chat-history">
+                <div class="message system-message">
+                    Hello! I'm your Timesheet Assistant. Tell me what you worked on.
+                    <br>Example: "Drafting email for Matter X 30m"
+                </div>
+            </div>
+
+            <div class="input-area">
+                <input type="text" id="chat-input" placeholder="Type your time log here..." autocomplete="off">
+                <button id="send-btn">Log</button>
+            </div>
+        </main>
+    </div>
+    <script src="app.js"></script>
+</body>
+
+</html>
