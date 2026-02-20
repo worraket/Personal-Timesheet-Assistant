@@ -314,7 +314,7 @@ function renderMatters(matters) {
 
     matters.forEach(m => {
         const div = document.createElement('div');
-        div.className = `matter-item ${typeof selectedMatterId !== 'undefined' && selectedMatterId === m.id ? 'active' : ''}`;
+        div.className = 'matter-item';
 
         // Flex layout for item
         div.style.display = 'flex';
@@ -1126,11 +1126,7 @@ async function renderMatterHistory(matterId) {
 
         let matterData = null;
         if (data.by_matter) {
-            // Robust matching: Try ID first (if backend supports), then Name.
-            // Note: backend main.py lines around 451 produce a list of values.
-            // ID might not be in the dictionary unless I added it.
-            // If ID is missing, we must fallback to Name.
-            matterData = data.by_matter.find(m => m.id === matterId || m.name === currentEditingMatter.name);
+            matterData = data.by_matter.find(m => m.id === matterId);
         }
 
         if (!matterData || !matterData.records || matterData.records.length === 0) {

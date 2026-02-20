@@ -20,8 +20,6 @@ import shutil
 os.makedirs("frontend/assets", exist_ok=True)
 
 
-# ... imports
-
 app = FastAPI(title="Personal Timesheet Assistant")
 
 @app.on_event("startup")
@@ -65,7 +63,6 @@ def get_settings():
     settings["ui_btn_scan_color"] = settings_service.get_setting("ui_btn_scan_color", "#0071e3")
     settings["ui_btn_export_color"] = settings_service.get_setting("ui_btn_export_color", "#e5e5e5")
     settings["ui_btn_manual_color"] = settings_service.get_setting("ui_btn_manual_color", "#f5f5f5")
-    settings["ui_btn_manual_color"] = settings_service.get_setting("ui_btn_manual_color", "#f5f5f5")
     settings["ui_btn_log_color"] = settings_service.get_setting("ui_btn_log_color", "#007AFF")
     settings["ui_panel_opacity"] = float(settings_service.get_setting("ui_panel_opacity", "0.4"))
     settings["ui_timer_color"] = settings_service.get_setting("ui_timer_color", "#FF3B30")
@@ -81,7 +78,6 @@ def update_settings(request: SettingsRequest):
     settings_service.set_setting("ui_bg_gradient_end", request.ui_bg_gradient_end)
     settings_service.set_setting("ui_btn_scan_color", request.ui_btn_scan_color)
     settings_service.set_setting("ui_btn_export_color", request.ui_btn_export_color)
-    settings_service.set_setting("ui_btn_manual_color", request.ui_btn_manual_color)
     settings_service.set_setting("ui_btn_manual_color", request.ui_btn_manual_color)
     settings_service.set_setting("ui_btn_log_color", request.ui_btn_log_color)
     settings_service.set_setting("ui_panel_opacity", str(request.ui_panel_opacity))
@@ -250,9 +246,6 @@ def scan_outlook(db: Session = Depends(database.get_db)):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-from . import nlp_service
-from pydantic import BaseModel
 
 class LogRequest(BaseModel):
     text: str
@@ -461,7 +454,6 @@ def update_log(log_id: int, request: LogUpdate, db: Session = Depends(database.g
     db.refresh(log)
     return {"message": "Log updated"}
 
-# ... (Log logic remains same)
 
 # Export Logic Update
 @app.get("/api/export")
