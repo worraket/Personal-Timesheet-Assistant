@@ -37,6 +37,7 @@ def startup_event():
 from . import outlook_service
 from . import time_service
 from . import settings_service
+from . import nlp_service
 from pydantic import BaseModel
 
 class SettingsRequest(BaseModel):
