@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException
+from typing import Optional
 import re
 import csv
 import io
@@ -49,11 +50,10 @@ class SettingsRequest(BaseModel):
     ui_btn_scan_color: str = "#0071e3"
     ui_btn_export_color: str = "#e5e5e5"
     ui_btn_manual_color: str = "#f5f5f5"
-    ui_btn_manual_color: str = "#f5f5f5"
     ui_btn_log_color: str = "#007AFF"
     ui_panel_opacity: float = 0.4
+    ui_timer_color: str = "#FF3B30"
 
-@app.get("/api/settings")
 @app.get("/api/settings")
 def get_settings():
     settings = settings_service.get_user_identifiers()
@@ -68,9 +68,9 @@ def get_settings():
     settings["ui_btn_manual_color"] = settings_service.get_setting("ui_btn_manual_color", "#f5f5f5")
     settings["ui_btn_log_color"] = settings_service.get_setting("ui_btn_log_color", "#007AFF")
     settings["ui_panel_opacity"] = float(settings_service.get_setting("ui_panel_opacity", "0.4"))
+    settings["ui_timer_color"] = settings_service.get_setting("ui_timer_color", "#FF3B30")
     return settings
 
-@app.post("/api/settings")
 @app.post("/api/settings")
 def update_settings(request: SettingsRequest):
     settings_service.set_setting("user_full_name", request.full_name)
@@ -85,6 +85,7 @@ def update_settings(request: SettingsRequest):
     settings_service.set_setting("ui_btn_manual_color", request.ui_btn_manual_color)
     settings_service.set_setting("ui_btn_log_color", request.ui_btn_log_color)
     settings_service.set_setting("ui_panel_opacity", str(request.ui_panel_opacity))
+    settings_service.set_setting("ui_timer_color", request.ui_timer_color)
     return {"message": "Settings updated successfully"}
 
 @app.post("/api/upload/background")
@@ -151,8 +152,17 @@ def get_matters(db: Session = Depends(database.get_db)):
 
 class MatterManualRequest(BaseModel):
     name: str
-    external_id: str = None
-    description: str = None
+    external_id: Optional[str] = None
+    description: Optional[str] = None
+    client_name: Optional[str] = None
+    client_email: Optional[str] = None
+
+class MatterUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    external_id: Optional[str] = None
+    description: Optional[str] = None
+    client_name: Optional[str] = None
+    client_email: Optional[str] = None
 
 @app.post("/api/matters/manual")
 def add_matter_manual(request: MatterManualRequest, db: Session = Depends(database.get_db)):
@@ -164,12 +174,35 @@ def add_matter_manual(request: MatterManualRequest, db: Session = Depends(databa
     new_matter = database.Matter(
         name=request.name,
         external_id=request.external_id,
-        description=request.description
+        description=request.description,
+        client_name=request.client_name,
+        client_email=request.client_email
     )
     db.add(new_matter)
     db.commit()
     db.refresh(new_matter)
     return {"message": "Matter added successfully", "matter": new_matter}
+
+@app.put("/api/matters/{matter_id}")
+def update_matter(matter_id: int, request: MatterUpdateRequest, db: Session = Depends(database.get_db)):
+    matter = db.query(database.Matter).filter(database.Matter.id == matter_id).first()
+    if not matter:
+        raise HTTPException(status_code=404, detail="Matter not found")
+        
+    if request.name is not None:
+        matter.name = request.name
+    if request.external_id is not None:
+        matter.external_id = request.external_id
+    if request.description is not None:
+        matter.description = request.description
+    if request.client_name is not None:
+        matter.client_name = request.client_name
+    if request.client_email is not None:
+        matter.client_email = request.client_email
+        
+    db.commit()
+    db.refresh(matter)
+    return {"message": "Matter updated successfully", "matter": matter}
 
 @app.post("/api/scan")
 def scan_outlook(db: Session = Depends(database.get_db)):
@@ -177,29 +210,43 @@ def scan_outlook(db: Session = Depends(database.get_db)):
         settings = settings_service.get_user_identifiers()
         found_matters = outlook_service.get_outlook_matters(settings, limit=50, scan_depth=2000)
         count = 0
-        added_matters_list = []
+        added_matters = []
         
         for m in found_matters:
-            existing = db.query(database.Matter).filter(
-                (database.Matter.source_email_id == m['source_email_id']) | 
-                (database.Matter.name == m['name'])
-            ).first()
+            # Check by External ID first (primary key for scans), then Name
+            existing = None
+            if m.get('external_id'):
+                existing = db.query(database.Matter).filter(database.Matter.external_id == m['external_id']).first()
+            
+            if not existing:
+                existing = db.query(database.Matter).filter(database.Matter.name == m['name']).first()
+            
+            # If still not existing, check by source_email_id to catch duplicates with different names/IDs?
+            # Actually source_email_id is unique per email, not per matter. 
+            # But we can check if we already processed this email for *creation*.
+            # The logic below creates a new matter if no matching matter found.
             
             if not existing:
                 new_matter = database.Matter(
                     name=m['name'],
                     external_id=m.get('external_id'),
                     description=m.get('description', ''),
-                    source_email_id=m['source_email_id']
+                    source_email_id=m['source_email_id'],
+                    client_name=m.get('client_name'),
+                    client_email=m.get('client_email')
                 )
                 db.add(new_matter)
-                added_matters_list.append(m['name'])
+                added_matters.append(m['name'])
                 count += 1
+            else:
+                # OPTIONAL: logic to update existing matter with new client info if missing?
+                # For now, preserve existing data.
+                pass
         
         db.commit()
         return {
             "message": f"Scan completed. Added {count} new matters.",
-            "added_matters": added_matters_list
+            "added_matters": added_matters
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -209,13 +256,13 @@ from pydantic import BaseModel
 
 class LogRequest(BaseModel):
     text: str
-    date: str = None # Optional date string from UI
-    matter_id: int = None # Optional explicit matter ID (for disambiguation)
+    date: Optional[str] = None # Optional date string from UI
+    matter_id: Optional[int] = None # Optional explicit matter ID (for disambiguation)
 
 class LogUpdate(BaseModel):
-    description: str = None
-    duration_minutes: int = None
-    log_date: str = None # ISO format
+    description: Optional[str] = None
+    duration_minutes: Optional[int] = None
+    log_date: Optional[str] = None # ISO format
 
 @app.post("/api/log")
 def log_time(request: LogRequest, db: Session = Depends(database.get_db)):
@@ -355,6 +402,44 @@ def delete_log(log_id: int, db: Session = Depends(database.get_db)):
     db.commit()
     return {"message": "Log deleted"}
 
+class DirectLogRequest(BaseModel):
+    matter_id: int
+    duration_minutes: int
+    description: str = ""
+    date: Optional[str] = None
+
+@app.post("/api/log/direct")
+def create_direct_log(request: DirectLogRequest, db: Session = Depends(database.get_db)):
+    """Create a time log with an exact duration (used by the timer module)."""
+    matter = db.query(database.Matter).filter(database.Matter.id == request.matter_id).first()
+    if not matter:
+        raise HTTPException(status_code=404, detail="Matter not found")
+
+    log_date = datetime.now()
+    if request.date:
+        try:
+            log_date = datetime.fromisoformat(request.date)
+        except ValueError:
+            pass  # fallback to now
+
+    units = time_service.calculate_units(request.duration_minutes)
+    log = database.TimeLog(
+        matter_id=matter.id,
+        description=request.description,
+        duration_minutes=request.duration_minutes,
+        units=units,
+        log_date=log_date
+    )
+    db.add(log)
+    db.commit()
+    db.refresh(log)
+    return {
+        "message": "Log saved",
+        "matter": matter.name,
+        "minutes": request.duration_minutes,
+        "units": units
+    }
+
 @app.put("/api/logs/{log_id}")
 def update_log(log_id: int, request: LogUpdate, db: Session = Depends(database.get_db)):
     log = db.query(database.TimeLog).filter(database.TimeLog.id == log_id).first()
@@ -423,13 +508,22 @@ def get_summary(db: Session = Depends(database.get_db)):
     # 1. Fetch all matters and logs with join
     logs = db.query(database.TimeLog).join(database.Matter).all()
     
-    # 2. Daily and Weekly filter
+    # 2. Daily, Weekly, and Monthly filters
     now = datetime.now()
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     week_start = today_start - timedelta(days=now.weekday()) # Monday
     
+    this_month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    if now.month == 1:
+        last_month_start = now.replace(year=now.year - 1, month=12, day=1, hour=0, minute=0, second=0, microsecond=0)
+    else:
+        last_month_start = now.replace(month=now.month - 1, day=1, hour=0, minute=0, second=0, microsecond=0)
+    last_month_end = this_month_start - timedelta(seconds=1)
+
     daily_logs = [l for l in logs if l.log_date >= today_start]
     weekly_logs = [l for l in logs if l.log_date >= week_start]
+    month_logs = [l for l in logs if l.log_date >= this_month_start]
+    prev_month_logs = [l for l in logs if l.log_date >= last_month_start and l.log_date <= last_month_end]
     
     # 3. Group by matter
     matters = db.query(database.Matter).all()
@@ -441,6 +535,7 @@ def get_summary(db: Session = Depends(database.get_db)):
             continue
             
         matter_summary[m.id] = {
+            "id": m.id,
             "name": m.name,
             "external_id": m.external_id,
             "total_minutes": sum(l.duration_minutes for l in matter_logs),
@@ -466,6 +561,14 @@ def get_summary(db: Session = Depends(database.get_db)):
             "this_week": {
                 "minutes": sum(l.duration_minutes for l in weekly_logs),
                 "units": sum(l.units for l in weekly_logs)
+            },
+            "this_month": {
+                "minutes": sum(l.duration_minutes for l in month_logs),
+                "units": sum(l.units for l in month_logs)
+            },
+            "last_month": {
+                "minutes": sum(l.duration_minutes for l in prev_month_logs),
+                "units": sum(l.units for l in prev_month_logs)
             }
         },
         "grand_total_units": sum(l.units for l in logs)

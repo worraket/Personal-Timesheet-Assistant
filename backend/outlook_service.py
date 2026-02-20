@@ -58,29 +58,46 @@ def get_outlook_matters(identifiers, limit=50, scan_depth=200):
                 print(f"DEBUG: Subject MATCHED: {subject}")
                 print(f"DEBUG: Extracted ID: {matter_id}, Name: {matter_name}")
 
-                # 2. Body Filter
-                # Check for specific assignment phrase in body
+                # 2. Body Filter & Client Info Extraction
+                client_name = None
+                client_email = None
+
                 if hasattr(message, "Body"):
-                    normalized_body = re.sub(r'\s+', ' ', message.Body).lower()
+                    body = message.Body
+                    normalized_body = re.sub(r'\s+', ' ', body).lower()
                     
-                    # Target phrase from dynamic identifiers
+                    # Target phrase for relevancy check
                     user_name = identifiers.get('full_name', 'worraket tantivanishakij').lower()
                     user_email = identifiers.get('email', 'worraket@scg.com').lower()
-                    
-                    # Escape for regex
                     safe_name = re.escape(user_name)
                     safe_email = re.escape(user_email)
-                    
                     target_regex = f"{safe_name}.*?{safe_email}.*?will contact you shortly"
                     
                     if re.search(target_regex, normalized_body, re.IGNORECASE):
-                        # Check if we already have this subject in our list
-                        if not any(m['name'] == matter_name for m in extracted_matters):
+                        # Extract Client Info from Body
+                        # Look for "ชื่อ: [Name]" and "อีเมล: [Email]"
+                        # We use the original body (not lowercase) to preserve capitalization if possible, 
+                        # but regex with IGNORECASE handles the keys.
+                        
+                        name_match = re.search(r"ชื่อ:\s*(.+)", body)
+                        if name_match:
+                            client_name = name_match.group(1).strip()
+                            
+                        email_match = re.search(r"อีเมล:\s*(.+)", body)
+                        if email_match:
+                            client_email = email_match.group(1).strip()
+
+                        # Check duplication by External ID first, then Name
+                        # We only add to extracted_matters if it's NOT already there.
+                        # The caller (main.py) will handle database checks.
+                        if not any(m['external_id'] == matter_id for m in extracted_matters):
                             extracted_matters.append({
                                 "name": matter_name, 
                                 "external_id": matter_id,
                                 "description": f"Subject: {subject} | From: {message.SenderName}",
-                                "source_email_id": message.EntryID
+                                "source_email_id": message.EntryID,
+                                "client_name": client_name,
+                                "client_email": client_email
                             })
                             count += 1
             except Exception as e:

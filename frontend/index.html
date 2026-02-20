@@ -7,7 +7,9 @@
     <title>Timesheet Assistant</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@500;700&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 
@@ -233,6 +235,12 @@
                     <input type="range" id="theme-panel-opacity" min="0" max="1" step="0.05" value="0.4"
                         style="width: 100%; margin-top: 8px;">
                 </div>
+                <div class="form-group"
+                    style="flex-direction: row; align-items: center; justify-content: space-between;">
+                    <label for="theme-timer-color">Timer Indicator Color</label>
+                    <input type="color" id="theme-timer-color" value="#FF3B30"
+                        style="width: 60px; height: 40px; padding: 2px;">
+                </div>
                 <button id="save-settings-btn" class="btn save-settings-btn">Save Settings</button>
             </div>
         </div>
@@ -259,6 +267,85 @@
                     <input type="text" id="new-matter-desc" placeholder="Brief project summary">
                 </div>
                 <button id="save-new-matter-btn" class="btn save-settings-btn">Save Matter</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Matter Details Modal -->
+    <div id="matter-details-modal" class="modal">
+        <div class="modal-content large-modal" style="position: relative;">
+            <span class="close-btn"
+                onclick="document.getElementById('matter-details-modal').style.display='none'">&times;</span>
+            <div class="modal-header">
+                <h2 id="details-modal-title">Matter Details</h2>
+            </div>
+
+            <div class="settings-form">
+                <div class="form-group">
+                    <label>Matter Name</label>
+                    <input type="text" id="detail-name">
+                </div>
+                <div class="form-group">
+                    <label>External ID</label>
+                    <input type="text" id="detail-external-id">
+                </div>
+                <div class="form-group">
+                    <label>Client Name</label>
+                    <input type="text" id="detail-client-name">
+                </div>
+                <div class="form-group">
+                    <label>Client Email</label>
+                    <input type="text" id="detail-client-email">
+                </div>
+                <div class="form-group full-width">
+                    <label>Description</label>
+                    <textarea id="detail-description" rows="3"
+                        style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--border-color);"></textarea>
+                </div>
+
+                <div class="modal-actions" style="margin-top: 16px;">
+                    <button id="save-details-btn" class="btn save-settings-btn" onclick="saveMatterDetails()">Save
+                        Changes</button>
+                </div>
+            </div>
+
+            <!-- ===== Inline Add Time Section ===== -->
+            <hr style="margin: 20px 0; border: 0; border-top: 1px solid var(--border-color);">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                <h3 style="margin: 0;">Add Time Log</h3>
+                <button class="btn"
+                    style="padding: 5px 12px; font-size: 0.8rem; background: var(--log-btn-bg); color: #fff; border-radius: 50px;"
+                    onclick="toggleAddTimePanel()">
+                    + Add Time
+                </button>
+            </div>
+            <div id="detail-add-time-panel" style="display: none;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                    <div class="form-group" style="margin: 0;">
+                        <label for="detail-log-date">Date</label>
+                        <input type="date" id="detail-log-date">
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label for="detail-log-duration">Duration (minutes)</label>
+                        <input type="number" id="detail-log-duration" min="1" placeholder="e.g. 30">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="detail-log-desc">Description <span
+                            style="color: var(--text-secondary); font-weight: 400;">(optional)</span></label>
+                    <input type="text" id="detail-log-desc" placeholder="What did you work on?">
+                </div>
+                <button class="btn save-settings-btn" style="margin-top: 4px;" onclick="saveDetailLog()">Save
+                    Log</button>
+            </div>
+
+            <hr class="separator" style="margin: 20px 0; border: 0; border-top: 1px solid var(--border-color);">
+
+            <h3>Time Log History</h3>
+            <div id="matter-log-history" class="log-history-list"
+                style="max-height: 260px; overflow-y: auto; margin-top: 12px;">
+                <!-- Logs rendered here -->
             </div>
         </div>
     </div>
@@ -356,6 +443,96 @@
         </div>
     </div>
 
+    <!-- ===== TIMER WIDGET (floating) ===== -->
+    <div id="timer-widget" class="timer-widget timer-idle">
+        <div class="timer-header">
+            <span class="timer-dot" id="timer-dot"></span>
+            <span class="timer-matter-label" id="timer-matter-label">No matter selected</span>
+        </div>
+        <div class="timer-display" id="timer-display">00:00:00</div>
+        <div class="timer-controls">
+            <button id="timer-start-btn" class="timer-btn timer-btn-start" onclick="timerStart()" title="Start Timer">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+                Start
+            </button>
+            <button id="timer-pause-btn" class="timer-btn timer-btn-pause" onclick="timerPause()" title="Pause"
+                style="display:none;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                    <rect x="6" y="4" width="4" height="16"></rect>
+                    <rect x="14" y="4" width="4" height="16"></rect>
+                </svg>
+                Pause
+            </button>
+            <button id="timer-resume-btn" class="timer-btn timer-btn-start" onclick="timerResume()" title="Resume"
+                style="display:none;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+                Resume
+            </button>
+            <button id="timer-stop-btn" class="timer-btn timer-btn-stop" onclick="timerStop()" title="Stop & Save"
+                style="display:none;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                </svg>
+                Stop
+            </button>
+        </div>
+    </div>
+
+    <!-- ===== TIMER STOP MODAL (description prompt) ===== -->
+    <div id="timer-stop-modal" class="modal">
+        <div class="modal-content" style="max-width: 440px;">
+            <div class="modal-header">
+                <h2>Save Time Log</h2>
+                <span class="close-modal" id="close-timer-stop-modal">&times;</span>
+            </div>
+            <div class="settings-form">
+                <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                    Timer stopped. Add a description for this session before saving.
+                </p>
+                <div class="form-group">
+                    <label for="timer-stop-summary">Duration</label>
+                    <div id="timer-stop-summary"
+                        style="font-size: 1.4rem; font-weight: 600; color: var(--accent-color); padding: 8px 0;"></div>
+                </div>
+                <div class="form-group">
+                    <label for="timer-stop-desc">Description <span
+                            style="color: var(--text-secondary); font-weight: 400;">(optional)</span></label>
+                    <input type="text" id="timer-stop-desc" placeholder="What did you work on?">
+                </div>
+                <button id="timer-save-log-btn" class="btn save-settings-btn" style="margin-top: 8px;"
+                    onclick="timerSaveLog()">
+                    Save Log
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== TIMER MATTER PICKER MODAL ===== -->
+    <div id="timer-matter-picker-modal" class="modal">
+        <div class="modal-content" style="max-width: 440px;">
+            <div class="modal-header">
+                <h2>Select a Matter</h2>
+                <span class="close-modal" id="close-timer-matter-picker-modal">&times;</span>
+            </div>
+            <div class="settings-form">
+                <p style="color: var(--text-secondary); margin-bottom: 8px;">Which matter do you want to time?</p>
+                <div class="sidebar-search" style="margin-bottom: 12px;">
+                    <input type="text" id="timer-picker-search" placeholder="Search matters..."
+                        style="width: 100%; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border-color); background: rgba(255,255,255,0.5); font-family: inherit; font-size: 0.9rem;"
+                        oninput="filterTimerMatterPicker(this.value)">
+                </div>
+                <div id="timer-picker-list" class="matters-list" style="max-height: 300px; overflow-y: auto;">
+                    <!-- populated by JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="timer.js"></script>
     <script src="app.js"></script>
 </body>
 

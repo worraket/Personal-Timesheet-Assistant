@@ -16,6 +16,8 @@ class Matter(Base):
     name = Column(String, index=True) # e.g., "Client X - Acquisition"
     external_id = Column(String, index=True, nullable=True) # e.g., "1234"
     description = Column(Text, nullable=True) # e.g., "Email subject: RE: Acquisition of Y"
+    client_name = Column(String, nullable=True)
+    client_email = Column(String, nullable=True)
     source_email_id = Column(String, unique=True, index=True, nullable=True) # To prevent duplicate scans
     created_at = Column(DateTime, default=datetime.now)
 

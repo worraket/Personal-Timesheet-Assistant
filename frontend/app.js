@@ -92,6 +92,9 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('missing-duration-modal').style.display = 'none';
             document.getElementById('ambiguous-matter-modal').style.display = 'none';
             document.getElementById('edit-log-modal').style.display = 'none';
+            document.getElementById('timer-stop-modal').style.display = 'none';
+            document.getElementById('timer-matter-picker-modal').style.display = 'none';
+            document.getElementById('matter-details-modal').style.display = 'none';
         }
     });
 
@@ -120,6 +123,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // First-Run Wizard
     document.getElementById('first-run-save-btn').addEventListener('click', saveFirstRunSettings);
     checkFirstRun();
+
+    // Timer module init
+    initTimer();
 });
 
 async function showSettings() {
@@ -147,6 +153,11 @@ async function showSettings() {
         document.getElementById('theme-panel-opacity').value = opacity;
         document.getElementById('opacity-value').innerText = Math.round(opacity * 100) + '%';
 
+        // Timer indicator color
+        const timerColor = settings.ui_timer_color || '#FF3B30';
+        document.getElementById('theme-timer-color').value = timerColor;
+        document.documentElement.style.setProperty('--timer-color', timerColor);
+
         // Setup live preview listeners
         setupThemeListeners();
     } catch (error) {
@@ -168,7 +179,8 @@ async function saveSettings() {
         ui_btn_export_color: document.getElementById('theme-export-btn').value,
         ui_btn_manual_color: document.getElementById('theme-manual-btn').value,
         ui_btn_log_color: document.getElementById('theme-log-btn').value,
-        ui_panel_opacity: parseFloat(document.getElementById('theme-panel-opacity').value)
+        ui_panel_opacity: parseFloat(document.getElementById('theme-panel-opacity').value),
+        ui_timer_color: document.getElementById('theme-timer-color').value
     };
 
     if (!settings.full_name || !settings.email) {
@@ -192,6 +204,8 @@ async function saveSettings() {
 
         // Apply settings immediately
         applyTheme(settings);
+        // Apply timer color immediately
+        document.documentElement.style.setProperty('--timer-color', settings.ui_timer_color);
 
         document.getElementById('settings-modal').style.display = 'none';
     } catch (error) {
@@ -298,23 +312,47 @@ function renderMatters(matters) {
         return;
     }
 
-    matters.forEach(matter => {
-        const item = document.createElement('div');
-        item.className = 'matter-item';
+    matters.forEach(m => {
+        const div = document.createElement('div');
+        div.className = `matter-item ${typeof selectedMatterId !== 'undefined' && selectedMatterId === m.id ? 'active' : ''}`;
 
-        let displayName = escapeHtml(matter.name);
-        if (matter.external_id) {
-            displayName = `[${escapeHtml(matter.external_id)}] ${displayName}`;
-        }
+        // Flex layout for item
+        div.style.display = 'flex';
+        div.style.justifyContent = 'space-between';
+        div.style.alignItems = 'center';
 
-        item.innerHTML = `
-            <div class="matter-name">${displayName}</div>
+        const infoDiv = document.createElement('div');
+        infoDiv.style.flex = '1';
+        infoDiv.innerHTML = `
+            <div class="matter-id" style="font-weight:600;">${escapeHtml(m.external_id) || 'No ID'}</div>
+            <div class="matter-name">${escapeHtml(m.name)}</div>
         `;
-        item.addEventListener('click', () => {
-            document.getElementById('chat-input').value = `Worked on ${matter.name} `;
+        // Only clicking the info part selects the matter
+        infoDiv.onclick = (e) => {
+            document.getElementById('chat-input').value = `Worked on ${m.name} `;
             document.getElementById('chat-input').focus();
-        });
-        list.appendChild(item);
+        };
+
+        const editBtn = document.createElement('button');
+        editBtn.innerHTML = '&#9998;'; // Pencil character
+        editBtn.className = 'icon-btn';
+        editBtn.title = "Edit Details";
+        editBtn.style.background = 'transparent';
+        editBtn.style.border = 'none';
+        editBtn.style.cursor = 'pointer';
+        editBtn.style.padding = '8px';
+        editBtn.style.marginLeft = '8px';
+        editBtn.style.color = 'var(--text-secondary)';
+        editBtn.style.fontSize = '1.2em';
+
+        editBtn.onclick = (e) => {
+            e.stopPropagation();
+            openMatterDetails(m);
+        };
+
+        div.appendChild(infoDiv);
+        div.appendChild(editBtn);
+        list.appendChild(div);
     });
 }
 
@@ -547,9 +585,13 @@ function renderSummary(data) {
         return;
     }
 
-    // 1. Header Grid (Today, This Week, Grand Total)
+    // 1. Header Grid (Buckets)
     const headerGrid = document.createElement('div');
     headerGrid.className = 'summary-header-grid';
+
+    const thisMonth = data.reports.this_month;
+    const lastMonth = data.reports.last_month;
+
     headerGrid.innerHTML = `
         <div class="summary-card">
             <h3>Today</h3>
@@ -561,9 +603,15 @@ function renderSummary(data) {
             <div class="value">${data.reports.this_week.units} units</div>
             <div class="sub-value">${data.reports.this_week.minutes} mins</div>
         </div>
+        <div class="summary-card highlight">
+            <h3>This Month</h3>
+            <div class="value">${thisMonth.units} units</div>
+            <div class="sub-value">${thisMonth.minutes} mins</div>
+        </div>
         <div class="summary-card">
-            <h3>Grand Total</h3>
-            <div class="value">${data.grand_total_units} units</div>
+            <h3>Last Month</h3>
+            <div class="value">${lastMonth.units} units</div>
+            <div class="sub-value">${lastMonth.minutes} mins</div>
         </div>
     `;
     container.appendChild(headerGrid);
@@ -688,6 +736,11 @@ function openEditLogModal(id, description, minutes, dateStr) {
     document.getElementById('edit-log-modal').style.display = 'block';
 }
 
+// Wrapper used from the Matter Details history panel
+function editLogFromHistory(id, description, minutes, dateStr) {
+    openEditLogModal(id, description, minutes, dateStr);
+}
+
 async function saveLogEdit() {
     const id = document.getElementById('edit-log-id').value;
     const description = document.getElementById('edit-log-desc').value;
@@ -709,7 +762,18 @@ async function saveLogEdit() {
 
         alert('Log updated successfully');
         document.getElementById('edit-log-modal').style.display = 'none';
-        showSummary(); // Refresh summary
+
+        // Refresh the Summary modal if it is open
+        const summaryModal = document.getElementById('summary-modal');
+        if (summaryModal && summaryModal.style.display === 'block') {
+            showSummary();
+        }
+
+        // Refresh Matter Details history if that modal is open
+        const detailsModal = document.getElementById('matter-details-modal');
+        if (detailsModal && detailsModal.style.display === 'block' && currentEditingMatter) {
+            renderMatterHistory(currentEditingMatter.id);
+        }
     } catch (error) {
         alert('Error updating log: ' + error.message);
     }
@@ -920,5 +984,214 @@ async function saveFirstRunSettings() {
     } finally {
         btn.innerText = 'Get Started';
         btn.disabled = false;
+    }
+}
+
+// Matter Details Logic
+
+let currentEditingMatter = null;
+
+function openMatterDetails(matter) {
+    currentEditingMatter = matter;
+
+    // Populate Form
+    document.getElementById('detail-name').value = matter.name || '';
+    document.getElementById('detail-external-id').value = matter.external_id || '';
+    document.getElementById('detail-client-name').value = matter.client_name || '';
+    document.getElementById('detail-client-email').value = matter.client_email || '';
+    document.getElementById('detail-description').value = matter.description || '';
+
+    // Reset Add Time panel
+    document.getElementById('detail-add-time-panel').style.display = 'none';
+    document.getElementById('detail-log-duration').value = '';
+    document.getElementById('detail-log-desc').value = '';
+    // Default date to today
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('detail-log-date').value = today;
+
+    // Render History
+    renderMatterHistory(matter.id);
+
+    // Show Modal
+    document.getElementById('matter-details-modal').style.display = 'block';
+}
+
+function toggleAddTimePanel() {
+    const panel = document.getElementById('detail-add-time-panel');
+    const isHidden = panel.style.display === 'none';
+    panel.style.display = isHidden ? 'block' : 'none';
+    if (isHidden) {
+        document.getElementById('detail-log-duration').focus();
+    }
+}
+
+async function saveDetailLog() {
+    if (!currentEditingMatter) return;
+
+    const duration = parseInt(document.getElementById('detail-log-duration').value, 10);
+    if (!duration || duration < 1) {
+        alert('Please enter a valid duration in minutes.');
+        return;
+    }
+
+    const desc = document.getElementById('detail-log-desc').value.trim();
+    const date = document.getElementById('detail-log-date').value || null;
+
+    const btn = document.querySelector('#detail-add-time-panel .save-settings-btn');
+    const originalText = btn.innerText;
+    btn.innerText = 'Saving...';
+    btn.disabled = true;
+
+    try {
+        const response = await fetch(`${API_BASE}/log/direct`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                matter_id: currentEditingMatter.id,
+                duration_minutes: duration,
+                description: desc || `Worked on ${currentEditingMatter.name}`,
+                date: date
+            })
+        });
+
+        if (!response.ok) throw new Error('Failed to save log');
+
+        const data = await response.json();
+
+        // Clear fields and hide panel
+        document.getElementById('detail-log-duration').value = '';
+        document.getElementById('detail-log-desc').value = '';
+        document.getElementById('detail-add-time-panel').style.display = 'none';
+
+        // Refresh the log history below
+        renderMatterHistory(currentEditingMatter.id);
+
+        // Brief success flash on the button row
+        btn.innerText = '✓ Saved';
+        setTimeout(() => { btn.innerText = originalText; btn.disabled = false; }, 1500);
+    } catch (e) {
+        alert('Error saving log: ' + e.message);
+        btn.innerText = originalText;
+        btn.disabled = false;
+    }
+}
+
+async function saveMatterDetails() {
+    if (!currentEditingMatter) return;
+
+    const btn = document.getElementById('save-details-btn');
+    const originalText = btn.innerText;
+    btn.innerText = 'Saving...';
+    btn.disabled = true;
+
+    const updateData = {
+        name: document.getElementById('detail-name').value,
+        external_id: document.getElementById('detail-external-id').value,
+        client_name: document.getElementById('detail-client-name').value,
+        client_email: document.getElementById('detail-client-email').value,
+        description: document.getElementById('detail-description').value
+    };
+
+    try {
+        const response = await fetch(`${API_BASE}/matters/${currentEditingMatter.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updateData)
+        });
+
+        if (response.ok) {
+            // Refresh matters list
+            loadMatters();
+            // Close modal
+            document.getElementById('matter-details-modal').style.display = 'none';
+        } else {
+            alert('Failed to update matter');
+        }
+    } catch (e) {
+        console.error(e);
+        alert('Error saving matter details');
+    } finally {
+        btn.innerText = originalText;
+        btn.disabled = false;
+    }
+}
+
+async function renderMatterHistory(matterId) {
+    const container = document.getElementById('matter-log-history');
+    container.innerHTML = '<div class="loading-state">Loading history...</div>';
+
+    try {
+        const response = await fetch(`${API_BASE}/summary`);
+        const data = await response.json();
+
+        let matterData = null;
+        if (data.by_matter) {
+            // Robust matching: Try ID first (if backend supports), then Name.
+            // Note: backend main.py lines around 451 produce a list of values.
+            // ID might not be in the dictionary unless I added it.
+            // If ID is missing, we must fallback to Name.
+            matterData = data.by_matter.find(m => m.id === matterId || m.name === currentEditingMatter.name);
+        }
+
+        if (!matterData || !matterData.records || matterData.records.length === 0) {
+            container.innerHTML = '<div class="empty-state">No time logs found for this matter.</div>';
+            return;
+        }
+
+        container.innerHTML = '';
+
+        // Sort by date desc
+        const sorted = matterData.records.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        sorted.forEach(log => {
+            const row = document.createElement('div');
+            row.className = 'history-item';
+            row.style.display = 'flex';
+            row.style.justifyContent = 'space-between';
+            row.style.alignItems = 'center';
+            row.style.padding = '10px';
+            row.style.borderBottom = '1px solid var(--border-color)';
+
+            row.innerHTML = `
+                <div style="flex: 1; padding-right: 10px;">
+                    <div style="font-weight: 500; font-size: 0.95em;">${escapeHtml(log.description || '(No description)')}</div>
+                    <div style="font-size: 0.8em; color: var(--text-secondary); margin-top: 4px;">${log.date} &bull; ${log.minutes}m (${log.units}u)</div>
+                </div>
+                <div style="display:flex; gap:6px; align-items:center;">
+                     <button class="icon-btn" onclick="editLogFromHistory(${log.id}, '${escapeHtml(log.description || '').replace(/'/g, "\\'").replace(/"/g, '&quot;')}', ${log.minutes}, '${log.date}')" title="Edit Log"
+                        style="background: none; border: 1px solid var(--border-color); border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size:1em;">
+                        &#9998;
+                     </button>
+                     <button class="icon-btn" onclick="deleteLogFromHistory(${log.id})" title="Delete Log"
+                        style="color: var(--danger-color); background: none; border: 1px solid var(--border-color); border-radius: 4px; padding: 4px 8px; cursor: pointer;">
+                        &times;
+                     </button>
+                </div>
+            `;
+            container.appendChild(row);
+        });
+
+    } catch (e) {
+        console.error(e);
+        container.innerHTML = '<div class="error-state">Failed to load history</div>';
+    }
+}
+
+async function deleteLogFromHistory(logId) {
+    if (!confirm("Are you sure you want to delete this time log?")) return;
+
+    try {
+        const response = await fetch(`${API_BASE}/logs/${logId}`, {
+            method: 'DELETE'
+        });
+
+        if (response.ok) {
+            if (currentEditingMatter) renderMatterHistory(currentEditingMatter.id);
+        } else {
+            const data = await response.json();
+            alert('Failed to delete log: ' + (data.detail || 'Unknown error'));
+        }
+    } catch (e) {
+        alert('Error deleting log');
     }
 }
