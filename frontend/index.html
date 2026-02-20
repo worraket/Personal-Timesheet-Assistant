@@ -4,10 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Timesheet Assistant</title>
+    <title>Timesheet Assistant</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 
@@ -15,36 +15,347 @@
     <div class="app-container">
         <aside class="sidebar">
             <div class="sidebar-header">
-                <h2>Matters</h2>
-                <button id="scan-btn" class="scan-btn">Scan Outlook</button>
-                <button id="export-btn" class="export-btn"
-                    style="margin-top: 10px; background-color: #1f6feb; border: none; color: white; padding: 8px 12px; border-radius: 6px; cursor: pointer; width: 100%;">Export
-                    to CSV</button>
+                <div class="sidebar-title-row">
+                    <h2>Matters</h2>
+                    <button id="settings-btn" class="settings-trigger" title="Settings">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path
+                                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                            </path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="action-buttons">
+                    <button id="scan-btn" class="btn scan-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M4 4v16h16V4H4z"></path>
+                            <path d="M4 8h16"></path>
+                            <path d="M8 4v4"></path>
+                            <path d="M16 4v4"></path>
+                        </svg>
+                        Scan Outlook
+                    </button>
+                    <button id="export-btn" class="btn export-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        Export CSV
+                    </button>
+                    <button id="add-matter-btn" class="btn manual-matter-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        Manual Matter
+                    </button>
+                </div>
+            </div>
+            <div class="sidebar-search" style="margin-bottom: 12px;">
+                <input type="text" id="matter-search-input" placeholder="Search matters..."
+                    style="width: 100%; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border-color); background: rgba(255,255,255,0.5); font-family: inherit; font-size: 0.9rem;">
             </div>
             <div id="matters-list" class="matters-list">
                 <!-- Matters will be populated here -->
-                <div class="loading-state">Loading matters...</div>
+                <div class="matter-item" style="cursor: default; background: transparent;">
+                    <div class="matter-name" style="color: var(--text-secondary); font-weight: 400;">No matters found
+                        yet.</div>
+                </div>
             </div>
         </aside>
 
         <main class="chat-interface">
             <header class="chat-header">
                 <h1>Timesheet Assistant</h1>
+                <div class="header-actions">
+                    <button id="reset-btn" class="btn reset-trigger" title="Reset Database">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M3 6h18"></path>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+                            </path>
+                        </svg>
+                        Reset
+                    </button>
+                    <button id="summary-btn" class="btn summary-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path>
+                            <path d="M22 12A10 10 0 0 0 12 2v10z"></path>
+                        </svg>
+                        Summary
+                    </button>
+                </div>
             </header>
+
+
 
             <div id="chat-history" class="chat-history">
                 <div class="message system-message">
-                    Hello! I'm your Timesheet Assistant. Tell me what you worked on.
-                    <br>Example: "Drafting email for Matter X 30m"
+                    Welcome back! I'm ready to log your time.
+                    <br><br>
+                    Try saying: <strong>"Reviewing contract for Matter X 1h"</strong>
                 </div>
             </div>
 
             <div class="input-area">
+                <input type="date" id="log-date" class="date-input" title="Select log date">
                 <input type="text" id="chat-input" placeholder="Type your time log here..." autocomplete="off">
-                <button id="send-btn">Log</button>
+                <div class="actions-stack">
+
+                    <button id="send-btn" title="Log Time">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="19" x2="12" y2="5"></line>
+                            <polyline points="5 12 12 5 19 12"></polyline>
+                        </svg>
+                    </button>
+                </div>
             </div>
         </main>
     </div>
+    <!-- Reset Modal -->
+    <div id="reset-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="danger-text">Reset Database</h2>
+                <span class="close-modal" id="close-reset-modal">&times;</span>
+            </div>
+            <div class="reset-confirm-body">
+                <p class="warning-text"><strong>Warning:</strong> This will permanently delete all matters and
+                    time logs. Your settings will be preserved.</p>
+                <p>Please type <strong>delete</strong> to confirm:</p>
+                <input type="text" id="reset-confirm-input" placeholder="type 'delete' here..." autocomplete="off">
+                <button id="confirm-reset-btn" class="btn confirm-reset-btn" disabled>Confirm Reset</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Modal -->
+    <div id="summary-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Time Summary</h2>
+                <span class="close-modal" id="close-summary-modal">&times;</span>
+            </div>
+            <div id="summary-container" class="summary-container">
+                <!-- Summary data will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>User Settings</h2>
+                <span class="close-modal" id="close-settings-modal">&times;</span>
+            </div>
+            <div class="settings-form">
+                <p class="settings-help">The Outlook scanner uses these details to find matters assigned to
+                    you
+                    in email bodies.</p>
+                <div class="form-group">
+                    <label for="user-full-name">Full Name (as in email body)</label>
+                    <input type="text" id="user-full-name" placeholder="John Doe">
+                </div>
+                <div class="form-group">
+                    <label for="user-email">Work Email</label>
+                    <input type="email" id="user-email" placeholder="john.doe@scg.com">
+                </div>
+
+                <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 10px 0;">
+                <h3 style="font-size: 1rem; margin-bottom: 12px;">Theme Settings</h3>
+
+                <div class="form-group"
+                    style="flex-direction: row; align-items: center; justify-content: space-between;">
+                    <input type="hidden" id="theme-bg-image-url">
+                    <label for="theme-bg-start">Background Start</label>
+                    <input type="color" id="theme-bg-start" value="#fbfbfd"
+                        style="width: 60px; height: 40px; padding: 2px;">
+                </div>
+                <div class="form-group"
+                    style="flex-direction: row; align-items: center; justify-content: space-between;">
+                    <label for="theme-bg-end">Background End</label>
+                    <input type="color" id="theme-bg-end" value="#f0f2f5"
+                        style="width: 60px; height: 40px; padding: 2px;">
+                </div>
+                <div class="form-group">
+                    <label>Background Image</label>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="file" id="bg-upload-input" accept="image/*" style="display: none;">
+                        <button type="button" id="upload-bg-btn" class="btn"
+                            style="background: var(--accent-color); color: white; flex: 1;">
+                            Upload Image
+                        </button>
+                        <button type="button" id="remove-bg-btn" class="btn"
+                            style="background: transparent; border: 1px solid var(--danger-color); color: var(--danger-color);">
+                            Remove
+                        </button>
+                    </div>
+                    <small class="settings-help">Uploaded image overrides gradient.</small>
+                </div>
+                <div class="form-group"
+                    style="flex-direction: row; align-items: center; justify-content: space-between;">
+                    <label for="theme-scan-btn">Scan Button</label>
+                    <input type="color" id="theme-scan-btn" value="#0071e3"
+                        style="width: 60px; height: 40px; padding: 2px;">
+                </div>
+                <div class="form-group"
+                    style="flex-direction: row; align-items: center; justify-content: space-between;">
+                    <label for="theme-export-btn">Export Button</label>
+                    <input type="color" id="theme-export-btn" value="#e5e5e5"
+                        style="width: 60px; height: 40px; padding: 2px;">
+                </div>
+                <div class="form-group"
+                    style="flex-direction: row; align-items: center; justify-content: space-between;">
+                    <label for="theme-manual-btn">Manual Matter Button</label>
+                    <input type="color" id="theme-manual-btn" value="#f5f5f5"
+                        style="width: 60px; height: 40px; padding: 2px;">
+                </div>
+                <div class="form-group"
+                    style="flex-direction: row; align-items: center; justify-content: space-between;">
+                    <label for="theme-log-btn">Log Time Button</label>
+                    <input type="color" id="theme-log-btn" value="#007AFF"
+                        style="width: 60px; height: 40px; padding: 2px;">
+                </div>
+                <div class="form-group">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <label for="theme-panel-opacity">Panel Opacity</label>
+                        <span id="opacity-value" style="font-weight: 600; color: var(--accent-color);">40%</span>
+                    </div>
+                    <input type="range" id="theme-panel-opacity" min="0" max="1" step="0.05" value="0.4"
+                        style="width: 100%; margin-top: 8px;">
+                </div>
+                <button id="save-settings-btn" class="btn save-settings-btn">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Matter Modal -->
+    <div id="add-matter-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Manually Add Matter</h2>
+                <span class="close-modal" id="close-add-matter-modal">&times;</span>
+            </div>
+            <div class="settings-form">
+                <div class="form-group">
+                    <label for="new-matter-name">Matter Name*</label>
+                    <input type="text" id="new-matter-name" placeholder="Client X - Project Y">
+                </div>
+                <div class="form-group">
+                    <label for="new-matter-id">External ID (Optional)</label>
+                    <input type="text" id="new-matter-id" placeholder="1234.567">
+                </div>
+                <div class="form-group">
+                    <label for="new-matter-desc">Description (Optional)</label>
+                    <input type="text" id="new-matter-desc" placeholder="Brief project summary">
+                </div>
+                <button id="save-new-matter-btn" class="btn save-settings-btn">Save Matter</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Missing Duration Modal -->
+    <div id="missing-duration-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Missing Duration</h2>
+                <span class="close-modal" id="close-missing-duration-modal">&times;</span>
+            </div>
+            <div class="settings-form">
+                <p>You didn't specify a duration. How long did this take?</p>
+                <div class="form-group">
+                    <label for="missing-duration-input">Duration (e.g., "30m", "1.5h")</label>
+                    <input type="text" id="missing-duration-input" placeholder="30m">
+                </div>
+                <button id="save-missing-duration-btn" class="btn save-settings-btn">Log Time</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ambiguous Matter Modal -->
+    <div id="ambiguous-matter-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Select Matter</h2>
+                <span class="close-modal" id="close-ambiguous-modal">&times;</span>
+            </div>
+            <div class="settings-form">
+                <p>Multiple matters matched your description. Please select one:</p>
+                <div class="sidebar-search" style="margin-bottom: 12px;">
+                    <input type="text" id="ambiguous-search-input" placeholder="Search Filter..."
+                        style="width: 100%; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border-color); background: rgba(255,255,255,0.5); font-family: inherit; font-size: 0.9rem;">
+                </div>
+                <div id="ambiguous-candidates-list" class="matters-list" style="max-height: 300px; overflow-y: auto;">
+                    <!-- Candidates populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- First Run Wizard Modal -->
+    <div id="first-run-modal" class="modal" data-backdrop="static">
+        <div class="modal-content" style="max-width: 500px; text-align: center;">
+            <div class="modal-header" style="justify-content: center; flex-direction: column; gap: 8px;">
+                <h1>Welcome! 👋</h1>
+                <p style="color: var(--text-secondary);">Let's set up your profile for Outlook scanning.</p>
+            </div>
+            <div class="settings-form">
+                <div class="form-group" style="text-align: left;">
+                    <label for="first-run-name">Full Name (as it appears in email bodies)</label>
+                    <input type="text" id="first-run-name" placeholder="e.g. John Doe">
+                </div>
+                <div class="form-group" style="text-align: left;">
+                    <label for="first-run-email">Work Email</label>
+                    <input type="email" id="first-run-email" placeholder="e.g. john.doe@company.com">
+                </div>
+                <button id="first-run-save-btn" class="btn save-settings-btn" style="width: 100%; margin-top: 24px;">
+                    Get Started
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Log Modal -->
+    <div id="edit-log-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit Time Log</h2>
+                <span class="close-modal" id="close-edit-log-modal">&times;</span>
+            </div>
+            <div class="settings-form">
+                <input type="hidden" id="edit-log-id">
+                <div class="form-group">
+                    <label for="edit-log-desc">Description</label>
+                    <input type="text" id="edit-log-desc">
+                </div>
+                <div class="form-group">
+                    <label for="edit-log-duration">Duration (minutes)</label>
+                    <input type="number" id="edit-log-duration">
+                </div>
+                <div class="form-group">
+                    <label for="edit-log-date">Date</label>
+                    <input type="datetime-local" id="edit-log-date">
+                </div>
+                <div style="display: flex; gap: 12px; margin-top: 12px;">
+                    <button id="delete-log-btn" class="btn"
+                        style="background-color: transparent; color: var(--danger-color); border: 1px solid var(--danger-color);">Delete
+                        Log</button>
+                    <button id="save-edit-log-btn" class="btn save-settings-btn" style="margin-top: 0; flex: 1;">Save
+                        Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="app.js"></script>
 </body>
 

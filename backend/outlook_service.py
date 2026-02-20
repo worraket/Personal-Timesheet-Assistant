@@ -3,7 +3,7 @@ import win32com.client
 import pythoncom
 from datetime import datetime, timedelta
 
-def get_outlook_matters(limit=50, scan_depth=200):
+def get_outlook_matters(identifiers, limit=50, scan_depth=200):
     try:
         # Initialize COM library for the thread
         pythoncom.CoInitialize()
@@ -37,30 +37,49 @@ def get_outlook_matters(limit=50, scan_depth=200):
                 if not subject:
                     continue
                 
+                subject = subject.strip()
+                
                 # DEBUG
                 # print(f"DEBUG: Checking subject: {subject}")
                     
-                subject_pattern = r"RE:\s*Request Form ID:.*SCG Legal Client Portal"
-                if not re.search(subject_pattern, subject, re.IGNORECASE):
+                # Pattern: RE: Request Form ID: [ID] SCG Legal Client Portal ([Matter Name])
+                # Example: RE: Request Form ID: 1440 SCG Legal Client Portal (Stark Energy - Solar EPC Contract...)
+                
+                subject_pattern = r"RE:\s*Request Form ID:\s*(\d+)\s*SCG Legal Client Portal\s*\((.*?)\)"
+                match = re.search(subject_pattern, subject, re.IGNORECASE)
+                
+                if not match:
                     continue
                 
+                # Extract Matter ID and Name
+                matter_id = match.group(1).strip()
+                matter_name = match.group(2).strip()
+                
                 print(f"DEBUG: Subject MATCHED: {subject}")
+                print(f"DEBUG: Extracted ID: {matter_id}, Name: {matter_name}")
 
                 # 2. Body Filter
                 # Check for specific assignment phrase in body
                 if hasattr(message, "Body"):
                     normalized_body = re.sub(r'\s+', ' ', message.Body).lower()
                     
-                    # Target phrase from user input
-                    # Use stricter regex but allow for punctuation/brackets around email
-                    target_regex = r"worraket tantivanishakij.*?worraket@scg\.com.*?will contact you shortly"
+                    # Target phrase from dynamic identifiers
+                    user_name = identifiers.get('full_name', 'worraket tantivanishakij').lower()
+                    user_email = identifiers.get('email', 'worraket@scg.com').lower()
                     
-                    if re.search(target_regex, normalized_body):
+                    # Escape for regex
+                    safe_name = re.escape(user_name)
+                    safe_email = re.escape(user_email)
+                    
+                    target_regex = f"{safe_name}.*?{safe_email}.*?will contact you shortly"
+                    
+                    if re.search(target_regex, normalized_body, re.IGNORECASE):
                         # Check if we already have this subject in our list
-                        if not any(m['name'] == subject for m in extracted_matters):
+                        if not any(m['name'] == matter_name for m in extracted_matters):
                             extracted_matters.append({
-                                "name": subject, 
-                                "description": f"From: {message.SenderName} | {message.Body[:100]}...",
+                                "name": matter_name, 
+                                "external_id": matter_id,
+                                "description": f"Subject: {subject} | From: {message.SenderName}",
                                 "source_email_id": message.EntryID
                             })
                             count += 1

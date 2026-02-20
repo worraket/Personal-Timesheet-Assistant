@@ -14,9 +14,10 @@ class Matter(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True) # e.g., "Client X - Acquisition"
+    external_id = Column(String, index=True, nullable=True) # e.g., "1234"
     description = Column(Text, nullable=True) # e.g., "Email subject: RE: Acquisition of Y"
     source_email_id = Column(String, unique=True, index=True, nullable=True) # To prevent duplicate scans
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now)
 
     time_logs = relationship("TimeLog", back_populates="matter")
 
@@ -27,10 +28,22 @@ class TimeLog(Base):
     matter_id = Column(Integer, ForeignKey("matters.id"))
     duration_minutes = Column(Integer)
     description = Column(Text) # "Drafting letter"
-    log_date = Column(DateTime, default=datetime.utcnow)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    log_date = Column(DateTime, default=datetime.now)
+    created_at = Column(DateTime, default=datetime.now)
 
     matter = relationship("Matter", back_populates="time_logs")
+    
+    # New field for time units
+    units = Column(Integer, default=0)
+
+class UserSetting(Base):
+    # DEPRECATED: Settings are now stored in settings.json.
+    # This table is kept for migration purposes only.
+    __tablename__ = "user_settings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    key = Column(String, unique=True, index=True)
+    value = Column(String)
 
 def init_db():
     Base.metadata.create_all(bind=engine)
