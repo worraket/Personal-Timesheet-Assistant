@@ -31,12 +31,12 @@ A local web app for **lawyers and legal professionals** to track billable time a
 
 ## 🚀 Quick Start
 
-### 1. Clone the repo
+### 1. Download the project
 
-```bash
-git clone https://github.com/worraket/Personal-Timesheet-Assistant.git
-cd Personal-Timesheet-Assistant
-```
+1. Go to the GitHub repository page
+2. Click the green **`<> Code`** button
+3. Select **"Download ZIP"** from the dropdown
+4. Extract the ZIP to a folder of your choice (e.g. `C:\Tools\PersonalTimesheetAssistant\`)
 
 ### 2. Run setup (one time only)
 
