@@ -9,6 +9,8 @@ from fastapi.responses import StreamingResponse, JSONResponse
 from sqlalchemy.orm import Session
 from datetime import datetime
 from . import database
+from . import migrate_db
+from . import migrate_db_closed
 
 database.init_db()
 
@@ -28,6 +30,8 @@ def startup_event():
     db = database.SessionLocal()
     try:
         settings_service.migrate_from_db(db)
+        migrate_db.migrate()
+        migrate_db_closed.add_is_closed_column()
     except Exception as e:
         print(f"Startup migration warning: {e}")
     finally:
@@ -153,6 +157,8 @@ class MatterManualRequest(BaseModel):
     description: Optional[str] = None
     client_name: Optional[str] = None
     client_email: Optional[str] = None
+    status_flag: str = "yellow"
+    is_closed: bool = False
 
 class MatterUpdateRequest(BaseModel):
     name: Optional[str] = None
@@ -160,6 +166,8 @@ class MatterUpdateRequest(BaseModel):
     description: Optional[str] = None
     client_name: Optional[str] = None
     client_email: Optional[str] = None
+    status_flag: Optional[str] = None
+    is_closed: Optional[bool] = None
 
 @app.post("/api/matters/manual")
 def add_matter_manual(request: MatterManualRequest, db: Session = Depends(database.get_db)):
@@ -173,7 +181,9 @@ def add_matter_manual(request: MatterManualRequest, db: Session = Depends(databa
         external_id=request.external_id,
         description=request.description,
         client_name=request.client_name,
-        client_email=request.client_email
+        client_email=request.client_email,
+        status_flag=request.status_flag,
+        is_closed=request.is_closed
     )
     db.add(new_matter)
     db.commit()
@@ -196,6 +206,10 @@ def update_matter(matter_id: int, request: MatterUpdateRequest, db: Session = De
         matter.client_name = request.client_name
     if request.client_email is not None:
         matter.client_email = request.client_email
+    if request.status_flag is not None:
+        matter.status_flag = request.status_flag
+    if request.is_closed is not None:
+        matter.is_closed = request.is_closed
         
     db.commit()
     db.refresh(matter)
@@ -531,6 +545,7 @@ def get_summary(db: Session = Depends(database.get_db)):
             "id": m.id,
             "name": m.name,
             "external_id": m.external_id,
+            "is_closed": getattr(m, 'is_closed', False), # use getattr for strict schema migration period
             "total_minutes": sum(l.duration_minutes for l in matter_logs),
             "total_units": sum(l.units for l in matter_logs),
             "records": [

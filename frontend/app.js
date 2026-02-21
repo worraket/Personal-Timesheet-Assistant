@@ -1,6 +1,9 @@
 const API_BASE = '/api';
 let allMatters = [];
 let currentCandidates = [];
+let currentEditingMatter = null;
+let currentSort = 'id-asc'; // Default sort preference
+let showClosedMatters = false;
 
 document.addEventListener('DOMContentLoaded', () => {
     loadMatters();
@@ -14,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('scan-btn').addEventListener('click', scanOutlook);
     document.getElementById('export-btn').addEventListener('click', exportLogs);
     document.getElementById('summary-btn').addEventListener('click', showSummary);
-    document.getElementById('settings-btn').addEventListener('click', showSettings);
+    document.querySelector('.settings-trigger').addEventListener('click', showSettings);
     document.getElementById('save-settings-btn').addEventListener('click', saveSettings);
     document.getElementById('reset-btn').addEventListener('click', showResetModal);
     document.getElementById('confirm-reset-btn').addEventListener('click', confirmReset);
@@ -22,6 +25,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('add-matter-btn').addEventListener('click', showAddMatterModal);
     document.getElementById('save-new-matter-btn').addEventListener('click', saveNewMatterManual);
+
+    // Toggle Closed Matters btn
+    const toggleClosedBtn = document.getElementById('toggle-closed-btn');
+    if (toggleClosedBtn) {
+        toggleClosedBtn.addEventListener('click', toggleClosedMattersVisibility);
+    }
 
     // Missing Duration Handlers
     document.getElementById('save-missing-duration-btn').addEventListener('click', retryWithDuration);
@@ -303,16 +312,46 @@ async function loadMatters() {
     }
 }
 
+function handleSortChange() {
+    currentSort = document.getElementById('matter-sort').value;
+    loadMatters();
+}
+
 function renderMatters(matters) {
     const list = document.getElementById('matters-list');
     list.innerHTML = '';
 
-    if (matters.length === 0) {
-        list.innerHTML = '<div class="empty-state">No matters found. Try scanning Outlook.</div>';
+    // Filter Closed Matters
+    let filteredMatters = matters;
+    if (!showClosedMatters) {
+        filteredMatters = matters.filter(m => !m.is_closed);
+    }
+
+    if (filteredMatters.length === 0) {
+        if (matters.length > 0) {
+            list.innerHTML = '<div class="empty-state">No open matters found.</div>';
+        } else {
+            list.innerHTML = '<div class="empty-state">No matters found. Try scanning Outlook.</div>';
+        }
         return;
     }
 
-    matters.forEach(m => {
+    // Apply Sorting
+    const sortedMatters = [...filteredMatters].sort((a, b) => {
+        if (currentSort === 'id-asc') {
+            return (a.external_id || '').localeCompare(b.external_id || '');
+        } else if (currentSort === 'id-desc') {
+            return (b.external_id || '').localeCompare(a.external_id || '');
+        } else if (currentSort === 'status-red' || currentSort === 'status-green') {
+            const priority = { 'red': 1, 'yellow': 2, 'green': 3 };
+            const valA = priority[a.status_flag] || 99;
+            const valB = priority[b.status_flag] || 99;
+            return currentSort === 'status-red' ? valA - valB : valB - valA;
+        }
+        return 0;
+    });
+
+    sortedMatters.forEach(m => {
         const div = document.createElement('div');
         div.className = 'matter-item';
 
@@ -323,10 +362,21 @@ function renderMatters(matters) {
 
         const infoDiv = document.createElement('div');
         infoDiv.style.flex = '1';
-        infoDiv.innerHTML = `
+        infoDiv.style.display = 'flex';
+        infoDiv.style.alignItems = 'center';
+
+        const statusDot = document.createElement('span');
+        statusDot.className = `status-indicator status-${m.status_flag || 'yellow'}`;
+        statusDot.title = `Status: ${m.status_flag || 'yellow'}`;
+
+        const textDiv = document.createElement('div');
+        textDiv.innerHTML = `
             <div class="matter-id" style="font-weight:600;">${escapeHtml(m.external_id) || 'No ID'}</div>
             <div class="matter-name">${escapeHtml(m.name)}</div>
         `;
+
+        infoDiv.appendChild(statusDot);
+        infoDiv.appendChild(textDiv);
         // Only clicking the info part selects the matter
         infoDiv.onclick = (e) => {
             document.getElementById('chat-input').value = `Worked on ${m.name} `;
@@ -809,6 +859,7 @@ async function saveNewMatterManual() {
     const name = document.getElementById('new-matter-name').value.trim();
     const external_id = document.getElementById('new-matter-id').value.trim();
     const description = document.getElementById('new-matter-desc').value.trim();
+    const status_flag = document.getElementById('new-matter-status').value;
 
     if (!name) {
         alert('Matter Name is required.');
@@ -823,7 +874,7 @@ async function saveNewMatterManual() {
         const response = await fetch(`${API_BASE}/matters/manual`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, external_id, description })
+            body: JSON.stringify({ name, external_id, description, status_flag })
         });
 
         if (!response.ok) {
@@ -989,8 +1040,6 @@ async function saveFirstRunSettings() {
 
 // Matter Details Logic
 
-let currentEditingMatter = null;
-
 function openMatterDetails(matter) {
     currentEditingMatter = matter;
 
@@ -1000,6 +1049,21 @@ function openMatterDetails(matter) {
     document.getElementById('detail-client-name').value = matter.client_name || '';
     document.getElementById('detail-client-email').value = matter.client_email || '';
     document.getElementById('detail-description').value = matter.description || '';
+    document.getElementById('detail-status').value = matter.status_flag || 'yellow';
+
+    // Update Close/Re-open button state
+    const closeBtn = document.getElementById('close-matter-btn');
+    if (closeBtn) {
+        if (matter.is_closed) {
+            closeBtn.innerText = 'Re-open Matter';
+            closeBtn.className = 'btn'; // reset to default blue/theme
+            closeBtn.style.backgroundColor = '#28a745'; // Green for re-open
+        } else {
+            closeBtn.innerText = 'Close Matter';
+            closeBtn.className = 'btn'; // reset
+            closeBtn.style.backgroundColor = '#dc3545'; // Red for close
+        }
+    }
 
     // Reset Add Time panel
     document.getElementById('detail-add-time-panel').style.display = 'none';
@@ -1076,6 +1140,21 @@ async function saveDetailLog() {
     }
 }
 
+function toggleClosedMattersVisibility() {
+    showClosedMatters = !showClosedMatters;
+    const btn = document.getElementById('toggle-closed-btn');
+    if (btn) {
+        if (showClosedMatters) {
+            btn.innerHTML = '&#128065; Hide Closed Matters';
+            btn.classList.add('active-toggle');
+        } else {
+            btn.innerHTML = '&#128065; Show All Matters';
+            btn.classList.remove('active-toggle');
+        }
+    }
+    loadMatters();
+}
+
 async function saveMatterDetails() {
     if (!currentEditingMatter) return;
 
@@ -1089,7 +1168,8 @@ async function saveMatterDetails() {
         external_id: document.getElementById('detail-external-id').value,
         client_name: document.getElementById('detail-client-name').value,
         client_email: document.getElementById('detail-client-email').value,
-        description: document.getElementById('detail-description').value
+        description: document.getElementById('detail-description').value,
+        status_flag: document.getElementById('detail-status').value
     };
 
     try {
@@ -1110,6 +1190,43 @@ async function saveMatterDetails() {
     } catch (e) {
         console.error(e);
         alert('Error saving matter details');
+    } finally {
+        btn.innerText = originalText;
+        btn.disabled = false;
+    }
+}
+
+async function toggleMatterClosedStatus() {
+    if (!currentEditingMatter) return;
+
+    const btn = document.getElementById('close-matter-btn');
+    const originalText = btn.innerText;
+    btn.innerText = 'Updating...';
+    btn.disabled = true;
+
+    const newClosedState = !currentEditingMatter.is_closed;
+
+    try {
+        const response = await fetch(`${API_BASE}/matters/${currentEditingMatter.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ is_closed: newClosedState })
+        });
+
+        if (response.ok) {
+            // Update local state so it doesn't revert if we save details later
+            currentEditingMatter.is_closed = newClosedState;
+
+            // Refresh list
+            loadMatters();
+            // Close modal
+            document.getElementById('matter-details-modal').style.display = 'none';
+        } else {
+            alert('Failed to update matter status');
+        }
+    } catch (e) {
+        console.error(e);
+        alert('Error updating matter status');
     } finally {
         btn.innerText = originalText;
         btn.disabled = false;

@@ -36,6 +36,31 @@
     color: #ff9500;
 }
 
+/* Status Indicators */
+.status-indicator {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 8px;
+    flex-shrink: 0;
+}
+
+.status-green {
+    background-color: var(--success-color);
+    box-shadow: 0 0 6px var(--success-color);
+}
+
+.status-yellow {
+    background-color: #ffcc00;
+    box-shadow: 0 0 6px #ffcc00;
+}
+
+.status-red {
+    background-color: var(--danger-color);
+    box-shadow: 0 0 6px var(--danger-color);
+}
+
 /* Close button for large modals (e.g. Matter Details) */
 .close-btn {
     position: absolute;
@@ -691,6 +716,8 @@ body {
     min-width: 160px;
     transition: all 0.25s ease;
     font-family: var(--font-body);
+    cursor: move;
+    /* Indicate it is draggable */
 }
 
 .timer-widget.timer-idle {

@@ -42,44 +42,74 @@ function initTimer() {
         } catch (e) { }
     }
 
-    // === Drag to move (header strip only) ===
-    const handle = widget.querySelector('.timer-header');
-    handle.style.cursor = 'grab';
-    let dragStartX, dragStartY, originLeft, originTop, isDragging = false;
+    // === Drag to move (Whole widget, excluding buttons) ===
+    let offsetX = 0, offsetY = 0, isDragging = false;
 
-    handle.addEventListener('mousedown', (e) => {
+    console.log("Timer widget drag initialized");
+
+    widget.addEventListener('mousedown', (e) => {
+        console.log("Timer mousedown triggered on element:", e.target);
+
+        // Don't drag if clicking a button or input
+        if (e.target.closest('button') || e.target.closest('input')) {
+            console.log("Click ignored - hit button or input");
+            return;
+        }
+
         e.preventDefault();
 
+        console.log("Current style right/bottom before clear:", widget.style.right, widget.style.bottom);
+        // Remove right/bottom constraints so left/top take over completely
+        if (widget.style.right || widget.style.bottom || !widget.style.left) {
+            widget.style.right = 'auto'; // Force auto to override CSS classes if inline clearing fails
+            widget.style.bottom = 'auto';
+            // If left/top aren't set yet (initial load), set them to current computed position
+            const computedStyle = window.getComputedStyle(widget);
+            widget.style.left = computedStyle.left;
+            widget.style.top = computedStyle.top;
+            console.log("Cleared constraints, set initial left/top to:", widget.style.left, widget.style.top);
+        }
+
         const rect = widget.getBoundingClientRect();
-        dragStartX = e.clientX;
-        dragStartY = e.clientY;
-        originLeft = rect.left;
-        originTop = rect.top;
+        // Calculate offset from grab point to top-left corner
+        offsetX = e.clientX - rect.left;
+        offsetY = e.clientY - rect.top;
         isDragging = false;
-        handle.style.cursor = 'grabbing';
+        widget.style.cursor = 'grabbing';
+        widget.style.transition = 'none'; // Prevent CSS from animating the drag
+
+        console.log(`Mouse Down: clientX=${e.clientX}, clientY=${e.clientY}, rect.left=${rect.left}, rect.top=${rect.top}, offsetX=${offsetX}, offsetY=${offsetY}`);
 
         function onMove(e) {
-            const dx = e.clientX - dragStartX;
-            const dy = e.clientY - dragStartY;
-            if (!isDragging && Math.abs(dx) < 4 && Math.abs(dy) < 4) return;
+            // Threshold check
+            if (!isDragging && Math.abs(e.clientX - (rect.left + offsetX)) < 5 && Math.abs(e.clientY - (rect.top + offsetY)) < 5) {
+                return;
+            }
+            if (!isDragging) {
+                console.log("Drag threshold crossed, starting move");
+            }
             isDragging = true;
 
-            let newLeft = originLeft + dx;
-            let newTop = originTop + dy;
+            let newLeft = e.clientX - offsetX;
+            let newTop = e.clientY - offsetY;
+
+            // Constrain to viewport
             newLeft = Math.max(0, Math.min(window.innerWidth - widget.offsetWidth, newLeft));
             newTop = Math.max(0, Math.min(window.innerHeight - widget.offsetHeight, newTop));
 
-            widget.style.right = 'auto';
-            widget.style.bottom = 'auto';
             widget.style.left = newLeft + 'px';
             widget.style.top = newTop + 'px';
         }
 
         function onUp() {
-            handle.style.cursor = 'grab';
+            console.log("Mouse up triggered, isDragging=", isDragging);
+            widget.style.cursor = 'move';
+            widget.style.transition = ''; // Restore CSS transitions
             document.removeEventListener('mousemove', onMove);
             document.removeEventListener('mouseup', onUp);
+
             if (isDragging) {
+                console.log("Saving new position:", widget.style.left, widget.style.top);
                 localStorage.setItem('timerPosition', JSON.stringify({
                     left: parseFloat(widget.style.left),
                     top: parseFloat(widget.style.top)
@@ -89,6 +119,7 @@ function initTimer() {
 
         document.addEventListener('mousemove', onMove);
         document.addEventListener('mouseup', onUp);
+        console.log("Attached mousemove and mouseup listeners to document");
     });
 
     // Wire up close buttons for the two new modals

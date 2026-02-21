@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, ForeignKey, Boolean
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 from datetime import datetime
 
@@ -18,6 +18,8 @@ class Matter(Base):
     description = Column(Text, nullable=True) # e.g., "Email subject: RE: Acquisition of Y"
     client_name = Column(String, nullable=True)
     client_email = Column(String, nullable=True)
+    status_flag = Column(String, default="yellow") # yellow (pending), green (completed), red (urgent)
+    is_closed = Column(Boolean, default=False) # True if the matter is archived/closed
     source_email_id = Column(String, unique=True, index=True, nullable=True) # To prevent duplicate scans
     created_at = Column(DateTime, default=datetime.now)
 

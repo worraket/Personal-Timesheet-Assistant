@@ -14,14 +14,14 @@ def migrate():
             cursor.execute("ALTER TABLE matters ADD COLUMN client_name TEXT")
             print("client_name column added.")
 
-        print("Checking for client_email column...")
+        print("Checking for status_flag column...")
         try:
-            cursor.execute("SELECT client_email FROM matters LIMIT 1")
-            print("client_email column already exists.")
+            cursor.execute("SELECT status_flag FROM matters LIMIT 1")
+            print("status_flag column already exists.")
         except sqlite3.OperationalError:
-            print("Adding client_email column...")
-            cursor.execute("ALTER TABLE matters ADD COLUMN client_email TEXT")
-            print("client_email column added.")
+            print("Adding status_flag column...")
+            cursor.execute("ALTER TABLE matters ADD COLUMN status_flag TEXT DEFAULT 'yellow'")
+            print("status_flag column added.")
             
         conn.commit()
         print("Migration completed successfully.")
