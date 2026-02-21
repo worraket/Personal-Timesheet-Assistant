@@ -21,6 +21,16 @@ A local web app for **lawyers and legal professionals** to track billable time a
 
 ---
 
+## 📅 Version History
+
+### Latest Updates
+- **Matter Status Flags**: Added color-coded status indicators (Green, Yellow, Red) to matters for easy visual tracking.
+- **Matter Sorting**: Added the ability to sort the matter list by ID (A-Z, Z-A) and by Status Priority.
+- **Matter Closure**: Added the ability to "Close" matters to hide them from the active list, along with a toggle button in the header to show/hide closed matters.
+- **Improved Timer Widget**: Refactored the floating timer widget drag-and-drop logic for immediate, zero-latency responsiveness and guaranteed stability across window resizes.
+
+---
+
 ## 🖥️ Requirements
 
 - **Windows 10 / 11** (Outlook scanner requires local Outlook via `pywin32`)
