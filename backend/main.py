@@ -545,29 +545,31 @@ def update_log(log_id: int, request: LogUpdate, db: Session = Depends(database.g
 @app.head("/api/export")
 def export_logs_head():
     """Handle HEAD requests for the export endpoint (browser preflight before download)."""
-    return JSONResponse(status_code=200, content=None, headers={"Content-Disposition": "attachment; filename=timesheet_logs.csv", "Content-Type": "text/csv"})
+    filename = f"timesheet{datetime.now().strftime('%Y%m%d')}.csv"
+    return JSONResponse(status_code=200, content=None, headers={"Content-Disposition": f"attachment; filename={filename}", "Content-Type": "text/csv"})
 
 @app.get("/api/export")
 def export_logs(db: Session = Depends(database.get_db)):
     logs = db.query(database.TimeLog).join(database.Matter).all()
-    
+    filename = f"timesheet{datetime.now().strftime('%Y%m%d')}.csv"
+
     # Use utf-8-sig (BOM) for Excel compatibility with Thai
     output = io.StringIO()
     # Write BOM manually if strict control is needed, but usually encoding='utf-8-sig' in open() handles it.
     # Since we are using StringIO, we can write the BOM character first.
-    output.write('\ufeff') 
-    
+    output.write('\ufeff')
+
     writer = csv.writer(output)
-    
+
     # Header
     # a) Date and time, b) Matter ID, c) Matter Description, d) Activities, c) time used (in minutes), d) time used (in Units)
     writer.writerow(["Date", "Matter ID", "Matter Description", "Activities", "Time Used (Minutes)", "Time Used (Units)"])
-    
+
     # Data
     for log in logs:
         # Use external_id if available, otherwise empty string or fallback
         matter_id = log.matter.external_id if log.matter.external_id else ""
-                
+
         writer.writerow([
             log.log_date.strftime("%Y-%m-%d"),
             matter_id,
@@ -576,11 +578,11 @@ def export_logs(db: Session = Depends(database.get_db)):
             log.duration_minutes,
             log.units
         ])
-    
+
     return StreamingResponse(
         iter([output.getvalue()]),
         media_type="text/csv",
-        headers={"Content-Disposition": "attachment; filename=timesheet_logs.csv"}
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
 @app.get("/api/summary")
