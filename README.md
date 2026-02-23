@@ -10,7 +10,7 @@ A local web app for **lawyers and legal professionals** to track billable time a
 |---|---|
 | 💬 **Natural Language Logging** | Type `"Reviewed merger docs for 1.5h"` and it auto-matches the matter and logs the time |
 | 🤖 **Multi-AI Support** | Optional AI enhancement: use **Claude, Gemini, OpenAI, or Grok** to resolve ambiguous entries (hybrid mode: free fuzzy matching + AI fallback) |
-| ⏱️ **Floating Timer Widget** | Start/pause/resume a live timer, then stop and log with a description — draggable, persists across refreshes |
+| ⏱️ **Timer Button** | Start/pause/resume a live timer next to Log Time, then stop and log with a description |
 | 📧 **Outlook Scanner** | Scans your local Outlook inbox to automatically discover matters from email subjects/bodies |
 | 📋 **Matter Management** | Add, edit, and view all matters including client name, client email, external ID, and description |
 | 📊 **Summary Dashboard** | Units and minutes logged today, this week, this month, and last month — per matter and overall |
@@ -30,7 +30,7 @@ A local web app for **lawyers and legal professionals** to track billable time a
 - **Matter Status Flags**: Added color-coded status indicators (Green, Yellow, Red) to matters for easy visual tracking.
 - **Matter Sorting**: Added the ability to sort the matter list by ID (A-Z, Z-A) and by Status Priority.
 - **Matter Closure**: Added the ability to "Close" matters to hide them from the active list, along with a toggle button in the header to show/hide closed matters.
-- **Improved Timer Widget**: Refactored the floating timer widget drag-and-drop logic for immediate, zero-latency responsiveness and guaranteed stability across window resizes.
+- **Timer Button Integration**: Moved timer from floating draggable widget to integrated button next to Log Time input for streamlined UX.
 
 ---
 
@@ -94,7 +94,7 @@ PersonalTimesheetAssistant/
 │   ├── index.html           # Single-page app layout
 │   ├── style.css            # Glassmorphism theme + all component styles
 │   ├── app.js               # Core UI logic and API calls
-│   └── timer.js             # Timer widget state machine + drag-to-move
+│   └── timer.js             # Timer button state machine (start/pause/resume/stop)
 ├── tests/                   # Backend unit tests
 ├── settings.json            # Persisted user settings (theme, identity, AI config)
 ├── timesheet.db             # SQLite database (matters + time logs)
@@ -160,7 +160,7 @@ If you've configured an AI provider:
   - You pay only for the AI call (~$0.0001–0.001 per ambiguous entry)
 
 ### Direct logging methods
-- **Timer widget** → Stop → fill description → Save
+- **Timer button** (next to Log Time) → Start/pause/resume timer → Stop → fill description → Save
 - **Matter Details popup** → Add Time → enter minutes + optional description → Save Log
 - **Chat input** → natural language text
 
