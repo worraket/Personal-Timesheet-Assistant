@@ -63,11 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('add-matter-btn').addEventListener('click', showAddMatterModal);
     document.getElementById('save-new-matter-btn').addEventListener('click', saveNewMatterManual);
 
-    // Toggle Closed Matters btn
-    const toggleClosedBtn = document.getElementById('toggle-closed-btn');
-    if (toggleClosedBtn) {
-        toggleClosedBtn.addEventListener('click', toggleClosedMattersVisibility);
-    }
+    // Toggle Closed Matters btn (onclick only — no duplicate addEventListener)
 
     // Missing Duration Handlers
     document.getElementById('save-missing-duration-btn').addEventListener('click', retryWithDuration);
