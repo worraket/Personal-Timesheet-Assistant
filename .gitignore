@@ -40,3 +40,9 @@ Thumbs.db
 # Settings
 settings.json
 secrets.enc
+
+# Backup Database Files
+*.db.bak
+timesheet(*).db
+*backup*.db
+*.db.backup_*
