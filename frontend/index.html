@@ -89,7 +89,7 @@
                 <h1>Timesheet Assistant</h1>
                 <div class="header-actions" style="display: flex; align-items: center; gap: 8px;">
                     <button id="matters-overview-btn" class="btn" title="View All Matters"
-                        style="padding: 10px 16px; font-size: 0.9rem; background: var(--manual-btn-bg); border: 1px solid var(--border-color); color: var(--text-primary); height: auto; display: flex; align-items: center; gap: 6px;">
+                        style="padding: 10px 16px; font-size: 0.9rem; background: var(--matters-btn-bg); border: 1px solid var(--border-color); color: var(--text-primary); height: auto; display: flex; align-items: center; gap: 6px;">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2">
                             <rect x="3" y="3" width="7" height="7"></rect>
@@ -99,7 +99,8 @@
                         </svg>
                         Matters
                     </button>
-                    <button id="reset-btn" class="btn reset-trigger" title="Reset Database">
+                    <button id="reset-btn" class="btn reset-trigger" title="Reset Database"
+                        style="background: var(--reset-btn-bg);">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2">
                             <path d="M3 6h18"></path>
@@ -117,7 +118,7 @@
                         Summary
                     </button>
                     <button id="toggle-closed-btn" class="btn" title="Toggle Closed Matters"
-                        style="padding: 10px 16px; font-size: 0.9rem; background: transparent; border: 1px solid var(--border-color); color: var(--text-secondary); height: auto; display: flex; align-items: center; gap: 6px;">
+                        style="padding: 10px 16px; font-size: 0.9rem; background: var(--closed-btn-bg); border: 1px solid var(--border-color); color: var(--text-secondary); height: auto; display: flex; align-items: center; gap: 6px;">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2">
                             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
@@ -215,7 +216,19 @@
                 </div>
 
                 <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 10px 0;">
-                <h3 style="font-size: 1rem; margin-bottom: 12px;">AI Assistant Settings</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <h3 style="font-size: 1rem; margin: 0;">AI Assistant Settings</h3>
+                    <div id="ai-toggle-wrapper" onclick="toggleAiEnabled()" style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem; user-select: none;">
+                        <span id="ai-toggle-label" style="color: var(--text-secondary);">OFF</span>
+                        <input type="hidden" id="ai-enabled-toggle" value="false">
+                        <div id="ai-toggle-track"
+                            style="position: relative; width: 44px; height: 24px; background: #ccc; border-radius: 12px; transition: background 0.2s;">
+                            <div id="ai-toggle-thumb"
+                                style="position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; background: white; border-radius: 50%; transition: transform 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2);">
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <p class="settings-help">Select an AI provider to help resolve ambiguous time entries. Keys are stored locally only.</p>
 
                 <div class="form-group">
@@ -315,6 +328,36 @@
                     <input type="color" id="theme-timer-color" value="#FF3B30"
                         style="width: 60px; height: 40px; padding: 2px;">
                 </div>
+                <div class="form-group"
+                    style="flex-direction: row; align-items: center; justify-content: space-between;">
+                    <label for="theme-timer-btn">Timer Button</label>
+                    <input type="color" id="theme-timer-btn" value="#ffffff"
+                        style="width: 60px; height: 40px; padding: 2px;">
+                </div>
+                <div class="form-group"
+                    style="flex-direction: row; align-items: center; justify-content: space-between;">
+                    <label for="theme-matters-btn">Matters Button</label>
+                    <input type="color" id="theme-matters-btn" value="#f8fafc"
+                        style="width: 60px; height: 40px; padding: 2px;">
+                </div>
+                <div class="form-group"
+                    style="flex-direction: row; align-items: center; justify-content: space-between;">
+                    <label for="theme-reset-btn">Reset Button</label>
+                    <input type="color" id="theme-reset-btn" value="#ffffff"
+                        style="width: 60px; height: 40px; padding: 2px;">
+                </div>
+                <div class="form-group"
+                    style="flex-direction: row; align-items: center; justify-content: space-between;">
+                    <label for="theme-summary-btn">Summary Button</label>
+                    <input type="color" id="theme-summary-btn" value="#ffffff"
+                        style="width: 60px; height: 40px; padding: 2px;">
+                </div>
+                <div class="form-group"
+                    style="flex-direction: row; align-items: center; justify-content: space-between;">
+                    <label for="theme-closed-btn">Show Closed Button</label>
+                    <input type="color" id="theme-closed-btn" value="#ffffff"
+                        style="width: 60px; height: 40px; padding: 2px;">
+                </div>
                 <button id="save-settings-btn" class="btn save-settings-btn">Save Settings</button>
             </div>
         </div>
@@ -356,7 +399,7 @@
 
 
     <!-- Matter Details Modal -->
-    <div id="matter-details-modal" class="modal">
+    <div id="matter-details-modal" class="modal" style="z-index: 1100;">
         <div class="modal-content large-modal" style="position: relative;">
             <span class="close-btn"
                 onclick="document.getElementById('matter-details-modal').style.display='none'">&times;</span>

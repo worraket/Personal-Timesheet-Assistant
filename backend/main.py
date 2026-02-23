@@ -32,6 +32,7 @@ def startup_event():
         settings_service.migrate_from_db(db)
         migrate_db.migrate()
         migrate_db_closed.add_is_closed_column()
+        settings_service.migrate_plaintext_keys()
     except Exception as e:
         print(f"Startup migration warning: {e}")
     finally:
@@ -57,6 +58,12 @@ class SettingsRequest(BaseModel):
     ui_btn_log_color: str = "#007AFF"
     ui_panel_opacity: float = 0.4
     ui_timer_color: str = "#FF3B30"
+    ui_btn_timer_color: str = "#ffffff"
+    ui_btn_matters_color: str = "#f8fafc"
+    ui_btn_reset_color: str = "#ffffff"
+    ui_btn_summary_color: str = "#ffffff"
+    ui_btn_closed_color: str = "#ffffff"
+    ai_enabled: bool = False
     ai_provider: str = "thefuzz"
     ai_key_claude: str = ""
     ai_key_gemini: str = ""
@@ -77,7 +84,13 @@ def get_settings():
     settings["ui_btn_log_color"] = settings_service.get_setting("ui_btn_log_color", "#007AFF")
     settings["ui_panel_opacity"] = float(settings_service.get_setting("ui_panel_opacity", "0.4"))
     settings["ui_timer_color"] = settings_service.get_setting("ui_timer_color", "#FF3B30")
+    settings["ui_btn_timer_color"] = settings_service.get_setting("ui_btn_timer_color", "#ffffff")
+    settings["ui_btn_matters_color"] = settings_service.get_setting("ui_btn_matters_color", "#f8fafc")
+    settings["ui_btn_reset_color"] = settings_service.get_setting("ui_btn_reset_color", "#ffffff")
+    settings["ui_btn_summary_color"] = settings_service.get_setting("ui_btn_summary_color", "#ffffff")
+    settings["ui_btn_closed_color"] = settings_service.get_setting("ui_btn_closed_color", "#ffffff")
     # Add AI settings
+    settings["ai_enabled"] = settings_service.get_setting("ai_enabled", "false") == "true"
     settings["ai_provider"] = settings_service.get_setting("ai_provider", "thefuzz")
     settings["ai_key_claude"] = settings_service.get_setting("ai_key_claude", "")
     settings["ai_key_gemini"] = settings_service.get_setting("ai_key_gemini", "")
@@ -99,7 +112,13 @@ def update_settings(request: SettingsRequest):
     settings_service.set_setting("ui_btn_log_color", request.ui_btn_log_color)
     settings_service.set_setting("ui_panel_opacity", str(request.ui_panel_opacity))
     settings_service.set_setting("ui_timer_color", request.ui_timer_color)
+    settings_service.set_setting("ui_btn_timer_color", request.ui_btn_timer_color)
+    settings_service.set_setting("ui_btn_matters_color", request.ui_btn_matters_color)
+    settings_service.set_setting("ui_btn_reset_color", request.ui_btn_reset_color)
+    settings_service.set_setting("ui_btn_summary_color", request.ui_btn_summary_color)
+    settings_service.set_setting("ui_btn_closed_color", request.ui_btn_closed_color)
     # Save AI settings
+    settings_service.set_setting("ai_enabled", str(request.ai_enabled).lower())
     settings_service.set_setting("ai_provider", request.ai_provider)
     settings_service.set_setting("ai_key_claude", request.ai_key_claude)
     settings_service.set_setting("ai_key_gemini", request.ai_key_gemini)
@@ -364,36 +383,39 @@ def log_time(request: LogRequest, db: Session = Depends(database.get_db)):
 
     # 2. Match matter
     matters = db.query(database.Matter).all()
-    candidates = nlp_service.match_matter(text, matters)
-
     matched_matter = None
 
-    # Try AI if fuzzy matching is ambiguous or empty
-    if len(candidates) != 1:
-        ai_provider = settings_service.get_setting("ai_provider", "thefuzz")
-        if ai_provider != "thefuzz":
-            api_key = settings_service.get_setting(f"ai_key_{ai_provider}", "")
-            if api_key:
-                try:
-                    matter_names = [m.name for m in matters]
-                    ai_result = ai_service.parse_log_entry_with_ai(text, matter_names, ai_provider, api_key)
+    ai_enabled = settings_service.get_setting("ai_enabled", "false") == "true"
+    ai_provider = settings_service.get_setting("ai_provider", "thefuzz")
+    api_key = settings_service.get_setting(f"ai_key_{ai_provider}", "") if ai_provider != "thefuzz" else ""
 
-                    # If AI found a matter, use it
-                    if ai_result.get("matter_name"):
-                        ai_match = next((m for m in matters if m.name == ai_result["matter_name"]), None)
-                        if ai_match:
-                            # Use AI's match and optionally override duration/date if they were 0/missing
-                            if duration == 0 and ai_result.get("duration_minutes"):
-                                duration = ai_result["duration_minutes"]
-                            if not log_date and ai_result.get("date"):
-                                try:
-                                    log_date = datetime.fromisoformat(ai_result["date"])
-                                except (ValueError, TypeError):
-                                    pass
-                            candidates = [ai_match]
-                except Exception as e:
-                    # AI call failed; log it and fall through to normal flow
-                    print(f"AI service error in /api/log: {e}")
+    if ai_enabled and ai_provider != "thefuzz" and api_key:
+        # AI first: if key is configured, let AI identify the matter
+        candidates = []
+        try:
+            matters_data = [
+                {"name": m.name, "external_id": m.external_id, "description": m.description, "client_name": m.client_name}
+                for m in matters
+            ]
+            ai_result = ai_service.parse_log_entry_with_ai(text, matters_data, ai_provider, api_key)
+            if ai_result.get("matter_name"):
+                ai_match = next((m for m in matters if m.name == ai_result["matter_name"]), None)
+                if ai_match:
+                    if duration == 0 and ai_result.get("duration_minutes"):
+                        duration = ai_result["duration_minutes"]
+                    if not log_date and ai_result.get("date"):
+                        try:
+                            log_date = datetime.fromisoformat(ai_result["date"])
+                        except (ValueError, TypeError):
+                            pass
+                    candidates = [ai_match]
+        except Exception as e:
+            # AI errored: fall back to NLP before popup
+            print(f"AI service error in /api/log, falling back to NLP: {e}")
+            candidates = nlp_service.match_matter(text, matters)
+    else:
+        # No AI key: use NLP only
+        candidates = nlp_service.match_matter(text, matters)
 
     if not candidates:
         # No candidates found
@@ -599,22 +621,26 @@ def get_summary(db: Session = Depends(database.get_db)):
             "id": m.id,
             "name": m.name,
             "external_id": m.external_id,
-            "is_closed": getattr(m, 'is_closed', False), # use getattr for strict schema migration period
+            "client_name": m.client_name,
+            "status_flag": m.status_flag or "yellow",
+            "is_closed": getattr(m, 'is_closed', False),
             "total_minutes": sum(l.duration_minutes for l in matter_logs),
             "total_units": sum(l.units for l in matter_logs),
+            "last_logged_at": max(l.created_at for l in matter_logs).strftime("%Y-%m-%d %H:%M:%S"),
             "records": [
                 {
                     "id": l.id,
                     "date": l.log_date.strftime("%Y-%m-%d %H:%M"),
+                    "logged_at": l.created_at.strftime("%Y-%m-%d %H:%M:%S") if l.created_at else None,
                     "minutes": l.duration_minutes,
                     "units": l.units,
                     "description": l.description
                 } for l in sorted(matter_logs, key=lambda x: x.log_date, reverse=True)
             ]
         }
-    
+
     return {
-        "by_matter": list(matter_summary.values()),
+        "by_matter": sorted(matter_summary.values(), key=lambda m: m["last_logged_at"], reverse=True),
         "reports": {
             "today": {
                 "minutes": sum(l.duration_minutes for l in daily_logs),

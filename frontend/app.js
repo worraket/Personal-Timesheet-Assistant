@@ -218,6 +218,10 @@ async function showSettings() {
         document.getElementById('user-email').value = settings.email || '';
 
         // Load AI settings
+        const aiEnabled = settings.ai_enabled === true || settings.ai_enabled === 'true';
+        document.getElementById('ai-enabled-toggle').value = aiEnabled ? 'true' : 'false';
+        updateAiToggleUI(aiEnabled);
+
         document.getElementById('ai-provider').value = settings.ai_provider || 'thefuzz';
         document.getElementById('ai-key-claude').value = settings.ai_key_claude || '';
         document.getElementById('ai-key-gemini').value = settings.ai_key_gemini || '';
@@ -242,6 +246,13 @@ async function showSettings() {
         document.getElementById('theme-timer-color').value = timerColor;
         document.documentElement.style.setProperty('--timer-color', timerColor);
 
+        // Button colors
+        document.getElementById('theme-timer-btn').value = settings.ui_btn_timer_color || '#ffffff';
+        document.getElementById('theme-matters-btn').value = settings.ui_btn_matters_color || '#f8fafc';
+        document.getElementById('theme-reset-btn').value = settings.ui_btn_reset_color || '#ffffff';
+        document.getElementById('theme-summary-btn').value = settings.ui_btn_summary_color || '#ffffff';
+        document.getElementById('theme-closed-btn').value = settings.ui_btn_closed_color || '#ffffff';
+
         // Setup live preview listeners
         setupThemeListeners();
     } catch (error) {
@@ -265,6 +276,12 @@ async function saveSettings() {
         ui_btn_log_color: document.getElementById('theme-log-btn').value,
         ui_panel_opacity: parseFloat(document.getElementById('theme-panel-opacity').value),
         ui_timer_color: document.getElementById('theme-timer-color').value,
+        ui_btn_timer_color: document.getElementById('theme-timer-btn').value,
+        ui_btn_matters_color: document.getElementById('theme-matters-btn').value,
+        ui_btn_reset_color: document.getElementById('theme-reset-btn').value,
+        ui_btn_summary_color: document.getElementById('theme-summary-btn').value,
+        ui_btn_closed_color: document.getElementById('theme-closed-btn').value,
+        ai_enabled: document.getElementById('ai-enabled-toggle').value === 'true',
         ai_provider: document.getElementById('ai-provider').value,
         ai_key_claude: document.getElementById('ai-key-claude').value,
         ai_key_gemini: document.getElementById('ai-key-gemini').value,
@@ -794,7 +811,7 @@ function renderSummary(data) {
             <div class="record-list">
                 ${item.records.map(record => `
                     <div class="record-item">
-                        <div class="record-date">${record.date}</div>
+                        <div class="record-date">${record.date}${record.logged_at ? `<span class="record-logged-at" title="Logged at ${record.logged_at}"> (${record.logged_at.slice(11, 16)})</span>` : ''}</div>
                         <div class="record-desc" title="${escapeHtml(record.description)}">
                             ${escapeHtml(record.description)}
                         </div>
@@ -835,12 +852,42 @@ async function showMattersOverview() {
     modal.style.display = 'block';
 
     try {
-        const response = await fetch(`${API_BASE}/summary`);
-        if (!response.ok) throw new Error('Failed to load overview data');
+        const [summaryRes, mattersRes] = await Promise.all([
+            fetch(`${API_BASE}/summary`),
+            fetch(`${API_BASE}/matters`)
+        ]);
+        if (!summaryRes.ok) throw new Error('Failed to load summary data');
+        if (!mattersRes.ok) throw new Error('Failed to load matters data');
 
-        const data = await response.json();
-        mattersOverviewData = data;
-        renderMattersOverview(data.by_matter);
+        const summaryData = await summaryRes.json();
+        const allMattersArr = await mattersRes.json();
+
+        // Build a lookup of summary data by matter id
+        const summaryById = {};
+        for (const m of summaryData.by_matter) {
+            summaryById[m.id] = m;
+        }
+
+        // Merge: use summary data if available, otherwise create entry with zero totals
+        const merged = allMattersArr.map(m => {
+            if (summaryById[m.id]) {
+                return summaryById[m.id];
+            }
+            return {
+                id: m.id,
+                name: m.name,
+                external_id: m.external_id,
+                client_name: m.client_name,
+                status_flag: m.status_flag || 'yellow',
+                is_closed: m.is_closed || false,
+                total_minutes: 0,
+                total_units: 0,
+                records: []
+            };
+        });
+
+        mattersOverviewData = { ...summaryData, by_matter: merged };
+        renderMattersOverview(merged);
     } catch (error) {
         container.innerHTML = `<div class="error-state">Error: ${error.message}</div>`;
     }
@@ -865,6 +912,7 @@ function renderMattersOverview(matters) {
                 <th>Name</th>
                 <th>Client</th>
                 <th>Total Time</th>
+                <th>Last Logged</th>
             </tr>
         </thead>
         <tbody></tbody>
@@ -872,20 +920,28 @@ function renderMattersOverview(matters) {
 
     const tbody = table.querySelector('tbody');
 
+    // Sort by last_logged_at (most recent first), then by name for matters with no logs
+    const sortByRecency = (a, b) => {
+        if (a.last_logged_at && b.last_logged_at) return b.last_logged_at.localeCompare(a.last_logged_at);
+        if (a.last_logged_at) return -1;
+        if (b.last_logged_at) return 1;
+        return a.name.localeCompare(b.name);
+    };
+
     // Grouping: open first, then closed
-    const open = matters.filter(m => !m.is_closed).sort((a, b) => a.name.localeCompare(b.name));
-    const closed = matters.filter(m => m.is_closed).sort((a, b) => a.name.localeCompare(b.name));
+    const open = matters.filter(m => !m.is_closed).sort(sortByRecency);
+    const closed = matters.filter(m => m.is_closed).sort(sortByRecency);
 
     [...open, ...closed].forEach(m => {
         const row = document.createElement('tr');
         row.className = 'overview-row' + (m.is_closed ? ' matter-closed' : '');
         row.onclick = () => {
-            // Find the original matter object from allMatters to pass to openMatterDetails
             const fullMatter = allMatters.find(am => am.id === m.id);
             if (fullMatter) openMatterDetails(fullMatter);
         };
 
         const statusDot = `<span class="overview-status-dot status-${m.status_flag || 'yellow'}"></span>`;
+        const lastLogged = m.last_logged_at ? m.last_logged_at.slice(0, 16).replace('T', ' ') : '-';
 
         row.innerHTML = `
             <td>${statusDot} ${m.is_closed ? '(Closed)' : ''}</td>
@@ -893,6 +949,7 @@ function renderMattersOverview(matters) {
             <td><strong>${escapeHtml(m.name)}</strong></td>
             <td>${escapeHtml(m.client_name) || '-'}</td>
             <td class="overview-totals">${m.total_units} units <span>(${m.total_minutes}m)</span></td>
+            <td class="overview-last-logged">${lastLogged}</td>
         `;
         tbody.appendChild(row);
     });
@@ -1100,6 +1157,46 @@ async function loadThemeSettings() {
     }
 }
 
+async function toggleAiEnabled() {
+    const input = document.getElementById('ai-enabled-toggle');
+    const newState = input.value !== 'true';
+    input.value = newState ? 'true' : 'false';
+    updateAiToggleUI(newState);
+
+    // Auto-save the toggle state immediately
+    try {
+        const response = await fetch(`${API_BASE}/settings`);
+        if (response.ok) {
+            const current = await response.json();
+            current.ai_enabled = newState;
+            await fetch(`${API_BASE}/settings`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(current)
+            });
+        }
+    } catch (e) {
+        console.error('Failed to save AI toggle:', e);
+    }
+}
+
+function updateAiToggleUI(enabled) {
+    const label = document.getElementById('ai-toggle-label');
+    const track = document.getElementById('ai-toggle-track');
+    const thumb = document.getElementById('ai-toggle-thumb');
+    if (enabled) {
+        label.textContent = 'ON';
+        label.style.color = 'var(--success-color)';
+        track.style.background = 'var(--success-color)';
+        thumb.style.transform = 'translateX(20px)';
+    } else {
+        label.textContent = 'OFF';
+        label.style.color = 'var(--text-secondary)';
+        track.style.background = '#ccc';
+        thumb.style.transform = 'translateX(0)';
+    }
+}
+
 function applyTheme(settings) {
     const root = document.documentElement;
     if (settings.ui_bg_gradient_start) root.style.setProperty('--bg-gradient-start', settings.ui_bg_gradient_start);
@@ -1108,6 +1205,11 @@ function applyTheme(settings) {
     if (settings.ui_btn_export_color) root.style.setProperty('--export-btn-bg', settings.ui_btn_export_color);
     if (settings.ui_btn_manual_color) root.style.setProperty('--manual-btn-bg', settings.ui_btn_manual_color);
     if (settings.ui_btn_log_color) root.style.setProperty('--log-btn-bg', settings.ui_btn_log_color);
+    if (settings.ui_btn_timer_color) root.style.setProperty('--timer-btn-bg', settings.ui_btn_timer_color);
+    if (settings.ui_btn_matters_color) root.style.setProperty('--matters-btn-bg', settings.ui_btn_matters_color);
+    if (settings.ui_btn_reset_color) root.style.setProperty('--reset-btn-bg', settings.ui_btn_reset_color);
+    if (settings.ui_btn_summary_color) root.style.setProperty('--summary-btn-bg', settings.ui_btn_summary_color);
+    if (settings.ui_btn_closed_color) root.style.setProperty('--closed-btn-bg', settings.ui_btn_closed_color);
     if (settings.ui_panel_opacity !== undefined) {
         root.style.setProperty('--panel-opacity', settings.ui_panel_opacity);
         root.style.setProperty('--panel-blur', (settings.ui_panel_opacity * 30) + 'px');
@@ -1141,6 +1243,21 @@ function setupThemeListeners() {
     });
     document.getElementById('theme-log-btn').addEventListener('input', (e) => {
         root.style.setProperty('--log-btn-bg', e.target.value);
+    });
+    document.getElementById('theme-timer-btn').addEventListener('input', (e) => {
+        root.style.setProperty('--timer-btn-bg', e.target.value);
+    });
+    document.getElementById('theme-matters-btn').addEventListener('input', (e) => {
+        root.style.setProperty('--matters-btn-bg', e.target.value);
+    });
+    document.getElementById('theme-reset-btn').addEventListener('input', (e) => {
+        root.style.setProperty('--reset-btn-bg', e.target.value);
+    });
+    document.getElementById('theme-summary-btn').addEventListener('input', (e) => {
+        root.style.setProperty('--summary-btn-bg', e.target.value);
+    });
+    document.getElementById('theme-closed-btn').addEventListener('input', (e) => {
+        root.style.setProperty('--closed-btn-bg', e.target.value);
     });
 
     document.getElementById('theme-panel-opacity').addEventListener('input', (e) => {

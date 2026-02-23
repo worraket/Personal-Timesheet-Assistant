@@ -21,6 +21,11 @@
     --export-btn-bg: #f1f5f9;
     --manual-btn-bg: #f8fafc;
     --log-btn-bg: #007AFF;
+    --timer-btn-bg: transparent;
+    --matters-btn-bg: #f8fafc;
+    --reset-btn-bg: transparent;
+    --summary-btn-bg: rgba(255, 255, 255, 0.85);
+    --closed-btn-bg: transparent;
     --panel-opacity: 0.35;
     --panel-blur: 40px;
     --message-user-bg: #007AFF;
@@ -416,7 +421,7 @@ body {
 
 /* Summary Button */
 .summary-btn {
-    background-color: var(--glass-bg);
+    background-color: var(--summary-btn-bg);
     border: 1px solid var(--border-color);
     color: var(--text-primary);
     padding: 8px 14px;
@@ -440,6 +445,10 @@ body {
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     animation: fadeIn 0.3s ease;
+}
+
+#matter-details-modal {
+    z-index: 1100;
 }
 
 /* Static backdrop for wizard */
@@ -652,6 +661,11 @@ body {
     color: var(--text-secondary);
 }
 
+.record-logged-at {
+    font-size: 0.8em;
+    opacity: 0.7;
+}
+
 .record-desc {
     color: var(--text-primary);
     overflow: hidden;
@@ -725,10 +739,11 @@ body {
     box-shadow: var(--shadow);
 }
 
-/* Idle state — subtle grey */
+/* Idle state */
 .timer-inline-idle {
     border-color: var(--border-color);
     color: var(--text-secondary);
+    background: var(--timer-btn-bg);
 }
 
 /* Running state — red accent, pulsing */
@@ -1013,6 +1028,12 @@ body {
     color: var(--text-secondary);
     font-size: 0.8rem;
     margin-left: 4px;
+}
+
+.overview-last-logged {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
 }
 
 
