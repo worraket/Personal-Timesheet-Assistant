@@ -42,6 +42,7 @@ from . import outlook_service
 from . import time_service
 from . import settings_service
 from . import nlp_service
+from . import ai_service
 from pydantic import BaseModel
 
 class SettingsRequest(BaseModel):
@@ -56,6 +57,11 @@ class SettingsRequest(BaseModel):
     ui_btn_log_color: str = "#007AFF"
     ui_panel_opacity: float = 0.4
     ui_timer_color: str = "#FF3B30"
+    ai_provider: str = "thefuzz"
+    ai_key_claude: str = ""
+    ai_key_gemini: str = ""
+    ai_key_openai: str = ""
+    ai_key_grok: str = ""
 
 @app.get("/api/settings")
 def get_settings():
@@ -71,6 +77,12 @@ def get_settings():
     settings["ui_btn_log_color"] = settings_service.get_setting("ui_btn_log_color", "#007AFF")
     settings["ui_panel_opacity"] = float(settings_service.get_setting("ui_panel_opacity", "0.4"))
     settings["ui_timer_color"] = settings_service.get_setting("ui_timer_color", "#FF3B30")
+    # Add AI settings
+    settings["ai_provider"] = settings_service.get_setting("ai_provider", "thefuzz")
+    settings["ai_key_claude"] = settings_service.get_setting("ai_key_claude", "")
+    settings["ai_key_gemini"] = settings_service.get_setting("ai_key_gemini", "")
+    settings["ai_key_openai"] = settings_service.get_setting("ai_key_openai", "")
+    settings["ai_key_grok"] = settings_service.get_setting("ai_key_grok", "")
     return settings
 
 @app.post("/api/settings")
@@ -87,6 +99,12 @@ def update_settings(request: SettingsRequest):
     settings_service.set_setting("ui_btn_log_color", request.ui_btn_log_color)
     settings_service.set_setting("ui_panel_opacity", str(request.ui_panel_opacity))
     settings_service.set_setting("ui_timer_color", request.ui_timer_color)
+    # Save AI settings
+    settings_service.set_setting("ai_provider", request.ai_provider)
+    settings_service.set_setting("ai_key_claude", request.ai_key_claude)
+    settings_service.set_setting("ai_key_gemini", request.ai_key_gemini)
+    settings_service.set_setting("ai_key_openai", request.ai_key_openai)
+    settings_service.set_setting("ai_key_grok", request.ai_key_grok)
     return {"message": "Settings updated successfully"}
 
 @app.post("/api/upload/background")
@@ -347,9 +365,36 @@ def log_time(request: LogRequest, db: Session = Depends(database.get_db)):
     # 2. Match matter
     matters = db.query(database.Matter).all()
     candidates = nlp_service.match_matter(text, matters)
-    
+
     matched_matter = None
-    
+
+    # Try AI if fuzzy matching is ambiguous or empty
+    if len(candidates) != 1:
+        ai_provider = settings_service.get_setting("ai_provider", "thefuzz")
+        if ai_provider != "thefuzz":
+            api_key = settings_service.get_setting(f"ai_key_{ai_provider}", "")
+            if api_key:
+                try:
+                    matter_names = [m.name for m in matters]
+                    ai_result = ai_service.parse_log_entry_with_ai(text, matter_names, ai_provider, api_key)
+
+                    # If AI found a matter, use it
+                    if ai_result.get("matter_name"):
+                        ai_match = next((m for m in matters if m.name == ai_result["matter_name"]), None)
+                        if ai_match:
+                            # Use AI's match and optionally override duration/date if they were 0/missing
+                            if duration == 0 and ai_result.get("duration_minutes"):
+                                duration = ai_result["duration_minutes"]
+                            if not log_date and ai_result.get("date"):
+                                try:
+                                    log_date = datetime.fromisoformat(ai_result["date"])
+                                except (ValueError, TypeError):
+                                    pass
+                            candidates = [ai_match]
+                except Exception as e:
+                    # AI call failed; log it and fall through to normal flow
+                    print(f"AI service error in /api/log: {e}")
+
     if not candidates:
         # No candidates found
         # Return 409 with empty candidates list to prompt creation or manual selection

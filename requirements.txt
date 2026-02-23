@@ -8,3 +8,6 @@ pywin32
 thefuzz
 python-Levenshtein
 pydantic-settings
+anthropic
+google-generativeai
+openai

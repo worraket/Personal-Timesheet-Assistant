@@ -217,6 +217,13 @@ async function showSettings() {
         document.getElementById('user-full-name').value = settings.full_name || '';
         document.getElementById('user-email').value = settings.email || '';
 
+        // Load AI settings
+        document.getElementById('ai-provider').value = settings.ai_provider || 'thefuzz';
+        document.getElementById('ai-key-claude').value = settings.ai_key_claude || '';
+        document.getElementById('ai-key-gemini').value = settings.ai_key_gemini || '';
+        document.getElementById('ai-key-openai').value = settings.ai_key_openai || '';
+        document.getElementById('ai-key-grok').value = settings.ai_key_grok || '';
+
         // Load theme settings into inputs
         document.getElementById('theme-bg-start').value = settings.ui_bg_gradient_start || '#fbfbfd';
         document.getElementById('theme-bg-end').value = settings.ui_bg_gradient_end || '#f0f2f5';
@@ -257,7 +264,12 @@ async function saveSettings() {
         ui_btn_manual_color: document.getElementById('theme-manual-btn').value,
         ui_btn_log_color: document.getElementById('theme-log-btn').value,
         ui_panel_opacity: parseFloat(document.getElementById('theme-panel-opacity').value),
-        ui_timer_color: document.getElementById('theme-timer-color').value
+        ui_timer_color: document.getElementById('theme-timer-color').value,
+        ai_provider: document.getElementById('ai-provider').value,
+        ai_key_claude: document.getElementById('ai-key-claude').value,
+        ai_key_gemini: document.getElementById('ai-key-gemini').value,
+        ai_key_openai: document.getElementById('ai-key-openai').value,
+        ai_key_grok: document.getElementById('ai-key-grok').value
     };
 
     if (!settings.full_name || !settings.email) {
