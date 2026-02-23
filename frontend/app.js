@@ -5,6 +5,43 @@ let currentEditingMatter = null;
 let currentSort = 'id-asc'; // Default sort preference
 let showClosedMatters = false;
 
+// ── Pinning ──────────────────────────────────────────────────
+const MAX_PINS = 5;
+function getPinnedIds() {
+    try { return JSON.parse(localStorage.getItem('pinnedMatters') || '[]'); }
+    catch { return []; }
+}
+function savePinnedIds(ids) {
+    localStorage.setItem('pinnedMatters', JSON.stringify(ids));
+}
+function togglePin(matterId) {
+    let ids = getPinnedIds();
+    if (ids.includes(matterId)) {
+        ids = ids.filter(id => id !== matterId);
+        savePinnedIds(ids);
+    } else {
+        if (ids.length >= MAX_PINS) {
+            showPinToast(`Max ${MAX_PINS} pins reached. Unpin one first.`);
+            return;
+        }
+        ids.push(matterId);
+        savePinnedIds(ids);
+    }
+    renderMatters(allMatters);
+}
+function showPinToast(msg) {
+    let t = document.getElementById('pin-toast');
+    if (!t) {
+        t = document.createElement('div');
+        t.id = 'pin-toast';
+        document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.classList.add('pin-toast-show');
+    clearTimeout(t._to);
+    t._to = setTimeout(() => t.classList.remove('pin-toast-show'), 2500);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     loadMatters();
     loadThemeSettings();
@@ -49,28 +86,59 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     document.getElementById('remove-bg-btn').addEventListener('click', removeBackground);
 
-    const summaryModal = document.getElementById('summary-modal');
+    // Modals
     const settingsModal = document.getElementById('settings-modal');
+    const summaryModal = document.getElementById('summary-modal');
     const resetModal = document.getElementById('reset-modal');
     const addMatterModal = document.getElementById('add-matter-modal');
-
-    document.getElementById('close-summary-modal').onclick = () => summaryModal.style.display = 'none';
-    document.getElementById('close-settings-modal').onclick = () => settingsModal.style.display = 'none';
-    document.getElementById('close-reset-modal').onclick = () => resetModal.style.display = 'none';
-    document.getElementById('close-add-matter-modal').onclick = () => addMatterModal.style.display = 'none';
-
-    // Edit Log Modal
+    const detailsModal = document.getElementById('matter-details-modal');
+    const missingDurationModal = document.getElementById('missing-duration-modal');
+    const ambiguousMatterModal = document.getElementById('ambiguous-matter-modal');
+    const firstRunModal = document.getElementById('first-run-modal');
     const editLogModal = document.getElementById('edit-log-modal');
-    document.getElementById('close-edit-log-modal').onclick = () => editLogModal.style.display = 'none';
+    const mattersOverviewModal = document.getElementById('matters-overview-modal');
+
+    // Triggers
+    document.querySelector('.settings-trigger').onclick = showSettings; // Kept original showSettings for functionality
+    document.getElementById('summary-btn').onclick = showSummary;
+    document.getElementById('reset-btn').onclick = showResetModal;
+    document.getElementById('add-matter-btn').onclick = showAddMatterModal;
+    document.getElementById('toggle-closed-btn').onclick = toggleClosedMattersVisibility;
+    document.getElementById('matters-overview-btn').onclick = showMattersOverview;
+
+    // Close buttons
+    const closeButtons = [
+        { id: 'close-summary-modal', modal: summaryModal },
+        { id: 'close-settings-modal', modal: settingsModal },
+        { id: 'close-reset-modal', modal: resetModal },
+        { id: 'close-add-matter-modal', modal: addMatterModal },
+        { id: 'close-missing-duration-modal', modal: missingDurationModal },
+        { id: 'close-ambiguous-modal', modal: ambiguousMatterModal },
+        { id: 'close-edit-log-modal', modal: editLogModal },
+        { id: 'close-matters-overview-modal', modal: mattersOverviewModal }
+    ];
+
+    closeButtons.forEach(btn => {
+        const element = document.getElementById(btn.id);
+        if (element) {
+            element.onclick = () => btn.modal.style.display = 'none';
+        }
+    });
+
     document.getElementById('save-edit-log-btn').addEventListener('click', saveLogEdit);
     document.getElementById('delete-log-btn').addEventListener('click', deleteLogFromModal);
+    // Search overview
+    document.getElementById('overview-search').addEventListener('input', (e) => {
+        filterMattersOverview(e.target.value);
+    });
 
+    // Close on click outside
     window.onclick = (event) => {
-        if (event.target == summaryModal) summaryModal.style.display = 'none';
-        if (event.target == settingsModal) settingsModal.style.display = 'none';
-        if (event.target == resetModal) resetModal.style.display = 'none';
-        if (event.target == addMatterModal) addMatterModal.style.display = 'none';
-        if (event.target == editLogModal) editLogModal.style.display = 'none';
+        const modals = [settingsModal, summaryModal, resetModal, addMatterModal, detailsModal, missingDurationModal, ambiguousMatterModal, editLogModal, mattersOverviewModal];
+        modals.forEach(modal => {
+            if (event.target == modal) modal.style.display = 'none';
+        });
+        // The original code had some redundant checks, removed for clarity and covered by the loop
     }
 
     // Feature: Default Date
@@ -351,11 +419,14 @@ function renderMatters(matters) {
         return 0;
     });
 
-    sortedMatters.forEach(m => {
-        const div = document.createElement('div');
-        div.className = 'matter-item';
+    // Split into pinned vs normal
+    const pinnedIds = getPinnedIds();
+    const pinned = sortedMatters.filter(m => pinnedIds.includes(m.id));
+    const normal = sortedMatters.filter(m => !pinnedIds.includes(m.id));
 
-        // Flex layout for item
+    function buildItem(m, isPinned) {
+        const div = document.createElement('div');
+        div.className = 'matter-item' + (isPinned ? ' matter-pinned' : '');
         div.style.display = 'flex';
         div.style.justifyContent = 'space-between';
         div.style.alignItems = 'center';
@@ -364,12 +435,14 @@ function renderMatters(matters) {
         infoDiv.style.flex = '1';
         infoDiv.style.display = 'flex';
         infoDiv.style.alignItems = 'center';
+        infoDiv.style.minWidth = '0';
 
         const statusDot = document.createElement('span');
         statusDot.className = `status-indicator status-${m.status_flag || 'yellow'}`;
         statusDot.title = `Status: ${m.status_flag || 'yellow'}`;
 
         const textDiv = document.createElement('div');
+        textDiv.style.minWidth = '0';
         textDiv.innerHTML = `
             <div class="matter-id" style="font-weight:600;">${escapeHtml(m.external_id) || 'No ID'}</div>
             <div class="matter-name">${escapeHtml(m.name)}</div>
@@ -377,34 +450,57 @@ function renderMatters(matters) {
 
         infoDiv.appendChild(statusDot);
         infoDiv.appendChild(textDiv);
-        // Only clicking the info part selects the matter
         infoDiv.onclick = (e) => {
             document.getElementById('chat-input').value = `Worked on ${m.name} `;
             document.getElementById('chat-input').focus();
         };
 
+        // Pin button
+        const pinBtn = document.createElement('button');
+        pinBtn.className = 'icon-btn pin-btn' + (isPinned ? ' pin-btn-active' : '');
+        pinBtn.title = isPinned ? 'Unpin matter' : 'Pin matter (max ' + MAX_PINS + ')';
+        pinBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="${isPinned ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 7h5l-4 4 2 7-6-4-6 4 2-7-4-4h5z"/></svg>`;
+        pinBtn.onclick = (e) => { e.stopPropagation(); togglePin(m.id); };
+
+        // Edit button
         const editBtn = document.createElement('button');
-        editBtn.innerHTML = '&#9998;'; // Pencil character
+        editBtn.innerHTML = '&#9998;';
         editBtn.className = 'icon-btn';
-        editBtn.title = "Edit Details";
+        editBtn.title = 'Edit Details';
         editBtn.style.background = 'transparent';
         editBtn.style.border = 'none';
         editBtn.style.cursor = 'pointer';
         editBtn.style.padding = '8px';
-        editBtn.style.marginLeft = '8px';
+        editBtn.style.marginLeft = '4px';
         editBtn.style.color = 'var(--text-secondary)';
         editBtn.style.fontSize = '1.2em';
-
-        editBtn.onclick = (e) => {
-            e.stopPropagation();
-            openMatterDetails(m);
-        };
+        editBtn.onclick = (e) => { e.stopPropagation(); openMatterDetails(m); };
 
         div.appendChild(infoDiv);
+        div.appendChild(pinBtn);
         div.appendChild(editBtn);
-        list.appendChild(div);
-    });
+        return div;
+    }
+
+    // Render pinned section
+    if (pinned.length > 0) {
+        const pinHeader = document.createElement('div');
+        pinHeader.className = 'pin-section-header';
+        pinHeader.innerHTML = `<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 2l3 7h5l-4 4 2 7-6-4-6 4 2-7-4-4h5z"/></svg> Pinned`;
+        list.appendChild(pinHeader);
+        pinned.forEach(m => list.appendChild(buildItem(m, true)));
+
+        if (normal.length > 0) {
+            const divider = document.createElement('div');
+            divider.className = 'pin-section-divider';
+            list.appendChild(divider);
+        }
+    }
+
+    // Render normal matters
+    normal.forEach(m => list.appendChild(buildItem(m, false)));
 }
+
 
 async function scanOutlook() {
     const btn = document.getElementById('scan-btn');
@@ -716,6 +812,93 @@ function renderSummary(data) {
     footer.innerHTML = `Total Units Logged: <span>${data.grand_total_units}</span>`;
     container.appendChild(footer);
 }
+
+// Matters Overview Implementation
+let mattersOverviewData = null;
+
+async function showMattersOverview() {
+    const modal = document.getElementById('matters-overview-modal');
+    const container = document.getElementById('matters-overview-list');
+    container.innerHTML = '<div class="loading-state">Loading matters overview...</div>';
+    modal.style.display = 'block';
+
+    try {
+        const response = await fetch(`${API_BASE}/summary`);
+        if (!response.ok) throw new Error('Failed to load overview data');
+
+        const data = await response.json();
+        mattersOverviewData = data;
+        renderMattersOverview(data.by_matter);
+    } catch (error) {
+        container.innerHTML = `<div class="error-state">Error: ${error.message}</div>`;
+    }
+}
+
+function renderMattersOverview(matters) {
+    const container = document.getElementById('matters-overview-list');
+    container.innerHTML = '';
+
+    if (!matters || matters.length === 0) {
+        container.innerHTML = '<div class="empty-state">No matters found.</div>';
+        return;
+    }
+
+    const table = document.createElement('table');
+    table.className = 'overview-table';
+    table.innerHTML = `
+        <thead>
+            <tr>
+                <th>Status</th>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Client</th>
+                <th>Total Time</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    `;
+
+    const tbody = table.querySelector('tbody');
+
+    // Grouping: open first, then closed
+    const open = matters.filter(m => !m.is_closed).sort((a, b) => a.name.localeCompare(b.name));
+    const closed = matters.filter(m => m.is_closed).sort((a, b) => a.name.localeCompare(b.name));
+
+    [...open, ...closed].forEach(m => {
+        const row = document.createElement('tr');
+        row.className = 'overview-row' + (m.is_closed ? ' matter-closed' : '');
+        row.onclick = () => {
+            // Find the original matter object from allMatters to pass to openMatterDetails
+            const fullMatter = allMatters.find(am => am.id === m.id);
+            if (fullMatter) openMatterDetails(fullMatter);
+        };
+
+        const statusDot = `<span class="overview-status-dot status-${m.status_flag || 'yellow'}"></span>`;
+
+        row.innerHTML = `
+            <td>${statusDot} ${m.is_closed ? '(Closed)' : ''}</td>
+            <td class="overview-id">${escapeHtml(m.external_id) || '-'}</td>
+            <td><strong>${escapeHtml(m.name)}</strong></td>
+            <td>${escapeHtml(m.client_name) || '-'}</td>
+            <td class="overview-totals">${m.total_units} units <span>(${m.total_minutes}m)</span></td>
+        `;
+        tbody.appendChild(row);
+    });
+
+    container.appendChild(table);
+}
+
+function filterMattersOverview(term) {
+    if (!mattersOverviewData) return;
+    const lower = term.toLowerCase();
+    const filtered = mattersOverviewData.by_matter.filter(m =>
+        m.name.toLowerCase().includes(lower) ||
+        (m.external_id && m.external_id.toLowerCase().includes(lower)) ||
+        (m.client_name && m.client_name.toLowerCase().includes(lower))
+    );
+    renderMattersOverview(filtered);
+}
+
 
 function showResetModal() {
     const modal = document.getElementById('reset-modal');
@@ -1052,15 +1235,13 @@ function openMatterDetails(matter) {
     document.getElementById('detail-status').value = matter.status_flag || 'yellow';
 
     // Update Close/Re-open button state
-    const closeBtn = document.getElementById('close-matter-btn');
+    const closeBtn = document.getElementById('archive-matter-btn');
     if (closeBtn) {
         if (matter.is_closed) {
             closeBtn.innerText = 'Re-open Matter';
-            closeBtn.className = 'btn'; // reset to default blue/theme
             closeBtn.style.backgroundColor = '#28a745'; // Green for re-open
         } else {
-            closeBtn.innerText = 'Close Matter';
-            closeBtn.className = 'btn'; // reset
+            closeBtn.innerText = 'Archive/Close Matter';
             closeBtn.style.backgroundColor = '#dc3545'; // Red for close
         }
     }
@@ -1199,12 +1380,16 @@ async function saveMatterDetails() {
 async function toggleMatterClosedStatus() {
     if (!currentEditingMatter) return;
 
-    const btn = document.getElementById('close-matter-btn');
+    const btn = document.getElementById('archive-matter-btn');
     const originalText = btn.innerText;
-    btn.innerText = 'Updating...';
-    btn.disabled = true;
 
     const newClosedState = !currentEditingMatter.is_closed;
+    const actionName = newClosedState ? 'Archive/Close' : 'Re-open';
+
+    if (!confirm(`Are you sure you want to ${actionName} "${currentEditingMatter.name}"?`)) return;
+
+    btn.innerText = 'Updating...';
+    btn.disabled = true;
 
     try {
         const response = await fetch(`${API_BASE}/matters/${currentEditingMatter.id}`, {

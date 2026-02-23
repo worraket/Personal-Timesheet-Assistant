@@ -250,9 +250,13 @@ def scan_outlook(db: Session = Depends(database.get_db)):
                 added_matters.append(m['name'])
                 count += 1
             else:
-                # OPTIONAL: logic to update existing matter with new client info if missing?
-                # For now, preserve existing data.
-                pass
+                # Update client info if the existing record is missing it
+                if not existing.client_name and m.get('client_name'):
+                    existing.client_name = m['client_name']
+                if not existing.client_email and m.get('client_email'):
+                    existing.client_email = m['client_email']
+                if not existing.source_email_id and m.get('source_email_id'):
+                    existing.source_email_id = m['source_email_id']
         
         db.commit()
         return {
@@ -471,6 +475,11 @@ def update_log(log_id: int, request: LogUpdate, db: Session = Depends(database.g
 
 
 # Export Logic Update
+@app.head("/api/export")
+def export_logs_head():
+    """Handle HEAD requests for the export endpoint (browser preflight before download)."""
+    return JSONResponse(status_code=200, content=None, headers={"Content-Disposition": "attachment; filename=timesheet_logs.csv", "Content-Type": "text/csv"})
+
 @app.get("/api/export")
 def export_logs(db: Session = Depends(database.get_db)):
     logs = db.query(database.TimeLog).join(database.Matter).all()

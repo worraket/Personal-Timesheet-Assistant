@@ -1,5 +1,5 @@
 // ===================================================================
-// TIMER MODULE
+// TIMER MODULE  –  Inline button variant (no floating widget)
 // ===================================================================
 
 // Timer state persisted to localStorage
@@ -29,100 +29,7 @@ function initTimer() {
     }
     _timerRenderUI();
 
-    // Restore saved widget position
-    const widget = document.getElementById('timer-widget');
-    const savedPos = localStorage.getItem('timerPosition');
-    if (savedPos) {
-        try {
-            const { left, top } = JSON.parse(savedPos);
-            widget.style.right = 'auto';
-            widget.style.bottom = 'auto';
-            widget.style.left = left + 'px';
-            widget.style.top = top + 'px';
-        } catch (e) { }
-    }
-
-    // === Drag to move (Whole widget, excluding buttons) ===
-    let offsetX = 0, offsetY = 0, isDragging = false;
-
-    console.log("Timer widget drag initialized");
-
-    widget.addEventListener('mousedown', (e) => {
-        console.log("Timer mousedown triggered on element:", e.target);
-
-        // Don't drag if clicking a button or input
-        if (e.target.closest('button') || e.target.closest('input')) {
-            console.log("Click ignored - hit button or input");
-            return;
-        }
-
-        e.preventDefault();
-
-        console.log("Current style right/bottom before clear:", widget.style.right, widget.style.bottom);
-        // Remove right/bottom constraints so left/top take over completely
-        if (widget.style.right || widget.style.bottom || !widget.style.left) {
-            widget.style.right = 'auto'; // Force auto to override CSS classes if inline clearing fails
-            widget.style.bottom = 'auto';
-            // If left/top aren't set yet (initial load), set them to current computed position
-            const computedStyle = window.getComputedStyle(widget);
-            widget.style.left = computedStyle.left;
-            widget.style.top = computedStyle.top;
-            console.log("Cleared constraints, set initial left/top to:", widget.style.left, widget.style.top);
-        }
-
-        const rect = widget.getBoundingClientRect();
-        // Calculate offset from grab point to top-left corner
-        offsetX = e.clientX - rect.left;
-        offsetY = e.clientY - rect.top;
-        isDragging = false;
-        widget.style.cursor = 'grabbing';
-        widget.style.transition = 'none'; // Prevent CSS from animating the drag
-
-        console.log(`Mouse Down: clientX=${e.clientX}, clientY=${e.clientY}, rect.left=${rect.left}, rect.top=${rect.top}, offsetX=${offsetX}, offsetY=${offsetY}`);
-
-        function onMove(e) {
-            // Threshold check
-            if (!isDragging && Math.abs(e.clientX - (rect.left + offsetX)) < 5 && Math.abs(e.clientY - (rect.top + offsetY)) < 5) {
-                return;
-            }
-            if (!isDragging) {
-                console.log("Drag threshold crossed, starting move");
-            }
-            isDragging = true;
-
-            let newLeft = e.clientX - offsetX;
-            let newTop = e.clientY - offsetY;
-
-            // Constrain to viewport
-            newLeft = Math.max(0, Math.min(window.innerWidth - widget.offsetWidth, newLeft));
-            newTop = Math.max(0, Math.min(window.innerHeight - widget.offsetHeight, newTop));
-
-            widget.style.left = newLeft + 'px';
-            widget.style.top = newTop + 'px';
-        }
-
-        function onUp() {
-            console.log("Mouse up triggered, isDragging=", isDragging);
-            widget.style.cursor = 'move';
-            widget.style.transition = ''; // Restore CSS transitions
-            document.removeEventListener('mousemove', onMove);
-            document.removeEventListener('mouseup', onUp);
-
-            if (isDragging) {
-                console.log("Saving new position:", widget.style.left, widget.style.top);
-                localStorage.setItem('timerPosition', JSON.stringify({
-                    left: parseFloat(widget.style.left),
-                    top: parseFloat(widget.style.top)
-                }));
-            }
-        }
-
-        document.addEventListener('mousemove', onMove);
-        document.addEventListener('mouseup', onUp);
-        console.log("Attached mousemove and mouseup listeners to document");
-    });
-
-    // Wire up close buttons for the two new modals
+    // Wire up close buttons for the two modals
     document.getElementById('close-timer-stop-modal').onclick = () => {
         document.getElementById('timer-stop-modal').style.display = 'none';
         if (timerState.accumulatedMs > 0) {
@@ -140,6 +47,59 @@ function initTimer() {
     document.getElementById('timer-stop-desc').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') timerSaveLog();
     });
+}
+
+// --- Inline button click handler ---
+// idle  → start (after picking matter)
+// running → pause
+// paused  → show mini-menu (resume / stop)
+function timerInlineClick() {
+    const status = timerState.status;
+    if (status === 'idle') {
+        timerStart();
+    } else if (status === 'running') {
+        timerPause();
+    } else if (status === 'paused') {
+        // Show a context menu: Resume / Stop & Save
+        _showTimerContextMenu();
+    }
+}
+
+function _showTimerContextMenu() {
+    // Remove existing menu if any
+    let menu = document.getElementById('timer-context-menu');
+    if (menu) { menu.remove(); return; }
+
+    menu = document.createElement('div');
+    menu.id = 'timer-context-menu';
+    menu.className = 'timer-context-menu';
+
+    const resumeBtn = document.createElement('button');
+    resumeBtn.textContent = '▶ Resume';
+    resumeBtn.onclick = () => { menu.remove(); timerResume(); };
+
+    const stopBtn = document.createElement('button');
+    stopBtn.textContent = '■ Stop & Save';
+    stopBtn.className = 'stop';
+    stopBtn.onclick = () => { menu.remove(); timerStop(); };
+
+    menu.appendChild(resumeBtn);
+    menu.appendChild(stopBtn);
+
+    // Position below the inline button
+    const btn = document.getElementById('timer-inline-btn');
+    const rect = btn.getBoundingClientRect();
+    menu.style.position = 'fixed';
+    menu.style.bottom = (window.innerHeight - rect.top + 6) + 'px';
+    menu.style.left = rect.left + 'px';
+    document.body.appendChild(menu);
+
+    // Dismiss when clicking elsewhere
+    setTimeout(() => {
+        document.addEventListener('click', function handler(e) {
+            if (!menu.contains(e.target)) { menu.remove(); document.removeEventListener('click', handler); }
+        });
+    }, 0);
 }
 
 // --- Public Controls ---
@@ -181,7 +141,7 @@ function timerStop() {
         timerState.startTime = null;
         _timerStopTick();
     }
-    timerState.status = 'paused'; // temporarily paused while user fills description
+    timerState.status = 'paused';
     _timerRenderUI();
 
     // Show stop/description modal
@@ -219,14 +179,11 @@ async function timerSaveLog() {
         });
 
         if (!response.ok) throw new Error('Failed to save');
-
         const data = await response.json();
 
-        // Close modal and reset timer
         document.getElementById('timer-stop-modal').style.display = 'none';
         _timerReset();
 
-        // Show a brief success note in the chat
         const chatHistory = document.getElementById('chat-history');
         if (chatHistory) {
             const msg = document.createElement('div');
@@ -306,39 +263,49 @@ function _updateTimerDisplay() {
     const m = Math.floor((totalMs % 3600000) / 60000);
     const s = Math.floor((totalMs % 60000) / 1000);
     const pad = n => String(n).padStart(2, '0');
-    document.getElementById('timer-display').textContent = `${pad(h)}:${pad(m)}:${pad(s)}`;
+    const display = document.getElementById('timer-inline-display');
+    if (display) {
+        display.textContent = h > 0 ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
+    }
 }
 
 function _timerRenderUI() {
     const status = timerState.status;
-    const widget = document.getElementById('timer-widget');
-    const dot = document.getElementById('timer-dot');
-    const label = document.getElementById('timer-matter-label');
+    const btn = document.getElementById('timer-inline-btn');
+    const display = document.getElementById('timer-inline-display');
+    if (!btn || !display) return;
 
-    // Label
-    label.textContent = timerState.matterName || 'No matter selected';
+    // Remove state classes
+    btn.classList.remove('timer-inline-idle', 'timer-inline-running', 'timer-inline-paused');
 
-    // Widget class
-    widget.className = 'timer-widget ' + (status === 'idle' ? 'timer-idle' : '');
+    if (status === 'idle') {
+        btn.classList.add('timer-inline-idle');
+        btn.title = 'Start Timer';
+        display.textContent = 'Timer';
+        _updateTimerIcon('clock');
+    } else if (status === 'running') {
+        btn.classList.add('timer-inline-running');
+        btn.title = `Timing: ${timerState.matterName || '?'} — click to pause`;
+        _updateTimerIcon('pause');
+        _updateTimerDisplay();
+    } else if (status === 'paused') {
+        btn.classList.add('timer-inline-paused');
+        btn.title = `Paused: ${timerState.matterName || '?'} — click for options`;
+        _updateTimerIcon('paused');
+        _updateTimerDisplay();
+    }
+}
 
-    // Dot animation class
-    dot.className = 'timer-dot';
-    if (status === 'running') dot.classList.add('active');
-    else if (status === 'paused') dot.classList.add('paused');
-
-    // Button visibility
-    const startBtn = document.getElementById('timer-start-btn');
-    const pauseBtn = document.getElementById('timer-pause-btn');
-    const resumeBtn = document.getElementById('timer-resume-btn');
-    const stopBtn = document.getElementById('timer-stop-btn');
-
-    startBtn.style.display = status === 'idle' ? '' : 'none';
-    pauseBtn.style.display = status === 'running' ? '' : 'none';
-    resumeBtn.style.display = status === 'paused' ? '' : 'none';
-    stopBtn.style.display = status !== 'idle' ? '' : 'none';
-
-    // Update display once
-    _updateTimerDisplay();
+function _updateTimerIcon(type) {
+    const icon = document.getElementById('timer-inline-icon');
+    if (!icon) return;
+    if (type === 'clock') {
+        icon.innerHTML = '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>';
+    } else if (type === 'pause') {
+        icon.innerHTML = '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
+    } else if (type === 'paused') {
+        icon.innerHTML = '<circle cx="12" cy="12" r="10" stroke-dasharray="3 2"/><polyline points="12 6 12 12 16 14"/>';
+    }
 }
 
 function _timerReset() {

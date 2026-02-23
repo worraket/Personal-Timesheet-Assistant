@@ -11,6 +11,8 @@
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@500;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🕐</text></svg>">
 </head>
 
 <body>
@@ -86,6 +88,17 @@
             <header class="chat-header">
                 <h1>Timesheet Assistant</h1>
                 <div class="header-actions" style="display: flex; align-items: center; gap: 8px;">
+                    <button id="matters-overview-btn" class="btn" title="View All Matters"
+                        style="padding: 10px 16px; font-size: 0.9rem; background: var(--manual-btn-bg); border: 1px solid var(--border-color); color: var(--text-primary); height: auto; display: flex; align-items: center; gap: 6px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <rect x="3" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="14" width="7" height="7"></rect>
+                            <rect x="3" y="14" width="7" height="7"></rect>
+                        </svg>
+                        Matters
+                    </button>
                     <button id="reset-btn" class="btn reset-trigger" title="Reset Database">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2">
@@ -128,8 +141,17 @@
             <div class="input-area">
                 <input type="date" id="log-date" class="date-input" title="Select log date">
                 <input type="text" id="chat-input" placeholder="Type your time log here..." autocomplete="off">
+                <!-- Inline Timer Button -->
+                <button id="timer-inline-btn" class="timer-inline-btn timer-inline-idle" onclick="timerInlineClick()"
+                    title="Start Timer">
+                    <svg id="timer-inline-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
+                    </svg>
+                    <span id="timer-inline-display">Timer</span>
+                </button>
                 <div class="actions-stack">
-
                     <button id="send-btn" title="Log Time">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                             stroke-linecap="round" stroke-linejoin="round">
@@ -139,6 +161,7 @@
                     </button>
                 </div>
             </div>
+
         </main>
     </div>
     <!-- Reset Modal -->
@@ -343,8 +366,8 @@
 
                 <div class="modal-actions"
                     style="margin-top: 16px; display: flex; justify-content: space-between; align-items: center;">
-                    <button id="close-matter-btn" class="btn" style="background-color: #dc3545; color: white;"
-                        onclick="toggleMatterClosedStatus()">Close Matter</button>
+                    <button id="archive-matter-btn" class="btn" style="background-color: #dc3545; color: white;"
+                        onclick="toggleMatterClosedStatus()">Archive/Close Matter</button>
                     <button id="save-details-btn" class="btn save-settings-btn" onclick="saveMatterDetails()">Save
                         Changes</button>
                 </div>
@@ -483,44 +506,8 @@
         </div>
     </div>
 
-    <!-- ===== TIMER WIDGET (floating) ===== -->
-    <div id="timer-widget" class="timer-widget timer-idle">
-        <div class="timer-header">
-            <span class="timer-dot" id="timer-dot"></span>
-            <span class="timer-matter-label" id="timer-matter-label">No matter selected</span>
-        </div>
-        <div class="timer-display" id="timer-display">00:00:00</div>
-        <div class="timer-controls">
-            <button id="timer-start-btn" class="timer-btn timer-btn-start" onclick="timerStart()" title="Start Timer">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                </svg>
-                Start
-            </button>
-            <button id="timer-pause-btn" class="timer-btn timer-btn-pause" onclick="timerPause()" title="Pause"
-                style="display:none;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                    <rect x="6" y="4" width="4" height="16"></rect>
-                    <rect x="14" y="4" width="4" height="16"></rect>
-                </svg>
-                Pause
-            </button>
-            <button id="timer-resume-btn" class="timer-btn timer-btn-start" onclick="timerResume()" title="Resume"
-                style="display:none;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                </svg>
-                Resume
-            </button>
-            <button id="timer-stop-btn" class="timer-btn timer-btn-stop" onclick="timerStop()" title="Stop & Save"
-                style="display:none;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                </svg>
-                Stop
-            </button>
-        </div>
-    </div>
+    <!-- floating timer widget removed -->
+
 
     <!-- ===== TIMER STOP MODAL (description prompt) ===== -->
     <div id="timer-stop-modal" class="modal">
@@ -568,6 +555,23 @@
                 <div id="timer-picker-list" class="matters-list" style="max-height: 300px; overflow-y: auto;">
                     <!-- populated by JS -->
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Matters Overview Modal -->
+    <div id="matters-overview-modal" class="modal">
+        <div class="modal-content" style="max-width: 1000px; width: 95%;">
+            <div class="modal-header">
+                <h2>All Matters Overview</h2>
+                <span class="close-modal" id="close-matters-overview-modal">&times;</span>
+            </div>
+            <div class="matters-overview-filters" style="margin-bottom: 20px; display: flex; gap: 12px;">
+                <input type="text" id="overview-search" placeholder="Search by name, ID or client..."
+                    style="flex: 1; padding: 12px 16px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--input-bg); font-family: inherit;">
+            </div>
+            <div id="matters-overview-list" class="matters-overview-container">
+                <!-- Data populated by JS as a table -->
             </div>
         </div>
     </div>

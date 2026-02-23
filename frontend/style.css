@@ -696,10 +696,107 @@ body {
     transform: scale(0.95);
 }
 
-/* ===== TIMER WIDGET ===== */
+/* ===== INLINE TIMER BUTTON ===== */
 :root {
     --timer-color: #FF3B30;
 }
+
+.timer-inline-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0 16px;
+    height: 44px;
+    border-radius: 22px;
+    border: 1.5px solid var(--border-color);
+    background: var(--glass-bg);
+    color: var(--text-secondary);
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.timer-inline-btn:hover {
+    background: rgba(255, 255, 255, 1);
+    box-shadow: var(--shadow);
+}
+
+/* Idle state — subtle grey */
+.timer-inline-idle {
+    border-color: var(--border-color);
+    color: var(--text-secondary);
+}
+
+/* Running state — red accent, pulsing */
+.timer-inline-running {
+    border-color: var(--timer-color);
+    color: var(--timer-color);
+    background: rgba(255, 59, 48, 0.06);
+    animation: timerBtnPulse 2s ease-in-out infinite;
+}
+
+/* Paused state — amber */
+.timer-inline-paused {
+    border-color: #FF9500;
+    color: #FF9500;
+    background: rgba(255, 149, 0, 0.06);
+}
+
+@keyframes timerBtnPulse {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.0);
+    }
+
+    50% {
+        box-shadow: 0 0 0 4px rgba(255, 59, 48, 0.15);
+    }
+}
+
+/* Timer context menu (Resume / Stop & Save popup) */
+.timer-context-menu {
+    position: fixed;
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    overflow: hidden;
+    z-index: 9999;
+    min-width: 160px;
+    animation: fadeIn 0.15s ease;
+}
+
+.timer-context-menu button {
+    display: block;
+    width: 100%;
+    padding: 12px 18px;
+    background: transparent;
+    border: none;
+    text-align: left;
+    font-family: var(--font-body);
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.timer-context-menu button:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.timer-context-menu button.stop {
+    color: var(--danger-color);
+    border-top: 1px solid var(--border-color);
+}
+
 
 .timer-widget {
     position: fixed;
@@ -837,4 +934,169 @@ body {
 
 .timer-btn-stop:hover {
     background: rgba(255, 59, 48, 0.18);
+}
+
+/* ===== MATTERS OVERVIEW MODAL ===== */
+.matters-overview-container {
+    overflow-x: auto;
+    max-height: 70vh;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.overview-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.overview-table th {
+    text-align: left;
+    padding: 14px 16px;
+    background: rgba(0, 0, 0, 0.03);
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.overview-table td {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+.overview-row {
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.overview-row:hover {
+    background: rgba(0, 113, 227, 0.05);
+}
+
+.overview-row.matter-closed {
+    opacity: 0.55;
+    background: rgba(0, 0, 0, 0.02);
+}
+
+.overview-row.matter-closed:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.overview-status-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 8px;
+}
+
+.overview-id {
+    font-family: monospace;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.overview-totals {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.overview-totals span {
+    font-weight: 400;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    margin-left: 4px;
+}
+
+
+/* ===== PIN FEATURE ===== */
+
+/* Pin button — subtle by default, vivid when active/pinned */
+.pin-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    margin-left: 2px;
+    color: var(--text-secondary);
+    opacity: 0;
+    transition: opacity 0.15s ease, color 0.15s ease, transform 0.15s ease;
+    flex-shrink: 0;
+}
+
+.matter-item:hover .pin-btn {
+    opacity: 1;
+}
+
+.pin-btn-active {
+    opacity: 1 !important;
+    color: #FF9500;
+    /* amber — clearly "pinned" */
+}
+
+.pin-btn:hover {
+    transform: scale(1.2);
+    color: #FF9500;
+}
+
+/* Pinned matter row highlight */
+.matter-pinned {
+    background: rgba(255, 149, 0, 0.06);
+    border-left: 2px solid rgba(255, 149, 0, 0.5);
+    border-radius: 10px;
+}
+
+.matter-pinned:hover {
+    background: rgba(255, 149, 0, 0.10) !important;
+}
+
+/* Section label above pinned items */
+.pin-section-header {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #FF9500;
+    padding: 4px 6px 6px 6px;
+    opacity: 0.85;
+}
+
+/* Divider between pinned and normal list */
+.pin-section-divider {
+    height: 1px;
+    background: linear-gradient(to right, rgba(0, 0, 0, 0.08), transparent);
+    margin: 6px 0 10px 0;
+}
+
+/* Toast notification for max-pins warning */
+#pin-toast {
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: rgba(30, 30, 30, 0.92);
+    color: #fff;
+    font-size: 0.85rem;
+    padding: 10px 18px;
+    border-radius: 20px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    z-index: 9999;
+    white-space: nowrap;
+}
+
+#pin-toast.pin-toast-show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
 }
