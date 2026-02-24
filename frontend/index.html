@@ -483,7 +483,15 @@
 
             <hr class="separator" style="margin: 20px 0; border: 0; border-top: 1px solid var(--border-color);">
 
-            <h3>Time Log History</h3>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 20px;">
+                <h3 style="margin: 0;">Time Log History</h3>
+                <button id="merge-logs-btn" class="btn"
+                    style="padding: 5px 12px; font-size: 0.8rem; background: var(--manual-btn-bg); color: var(--text-primary); border-radius: 50px; display: none;"
+                    onclick="mergeSelectedLogs()">
+                    Merge Selected
+                </button>
+            </div>
+
             <div id="matter-log-history" class="log-history-list"
                 style="max-height: 260px; overflow-y: auto; margin-top: 12px;">
                 <!-- Logs rendered here -->

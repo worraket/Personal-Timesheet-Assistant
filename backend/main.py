@@ -481,6 +481,70 @@ def delete_log(log_id: int, db: Session = Depends(database.get_db)):
     db.commit()
     return {"message": "Log deleted"}
 
+from typing import List
+
+class MergeRequest(BaseModel):
+    log_ids: List[int]
+
+@app.post("/api/logs/merge")
+def merge_logs(request: MergeRequest, db: Session = Depends(database.get_db)):
+    if not request.log_ids or len(request.log_ids) < 2:
+        raise HTTPException(status_code=400, detail="Must provide at least 2 log IDs to merge")
+
+    # Fetch all logs to merge
+    logs = db.query(database.TimeLog).filter(database.TimeLog.id.in_(request.log_ids)).all()
+    
+    if len(logs) != len(request.log_ids):
+        raise HTTPException(status_code=404, detail="One or more logs not found")
+
+    # Validation: Same matter
+    matter_ids = set([log.matter_id for log in logs])
+    if len(matter_ids) > 1:
+        raise HTTPException(status_code=400, detail="All logs must belong to the same matter")
+
+    # Validation: Same local date
+    dates = set([log.log_date.strftime("%Y-%m-%d") for log in logs])
+    if len(dates) > 1:
+        raise HTTPException(status_code=400, detail="All logs must belong to the same date")
+
+    # Sort logs by created_at or id to keep the earliest one as the primary
+    logs = sorted(logs, key=lambda x: x.id)
+    primary_log = logs[0]
+    logs_to_delete = logs[1:]
+
+    # Merge data
+    total_duration = sum([log.duration_minutes for log in logs])
+    
+    # Collect descriptions, ignoring empty ones
+    descriptions = [log.description.strip() for log in logs if log.description and log.description.strip()]
+    
+    # Only join unique descriptions to avoid repetition
+    unique_descriptions = []
+    for d in descriptions:
+        if d not in unique_descriptions:
+            unique_descriptions.append(d)
+            
+    combined_description = " | ".join(unique_descriptions)
+
+    # Update primary log
+    primary_log.duration_minutes = total_duration
+    primary_log.units = time_service.calculate_units(total_duration)
+    primary_log.description = combined_description
+
+    # Delete other logs
+    for log in logs_to_delete:
+        db.delete(log)
+
+    db.commit()
+    db.refresh(primary_log)
+
+    return {
+        "message": "Logs merged successfully",
+        "log_id": primary_log.id,
+        "units": primary_log.units,
+        "duration": primary_log.duration_minutes
+    }
+
 class DirectLogRequest(BaseModel):
     matter_id: int
     duration_minutes: int

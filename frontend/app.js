@@ -144,11 +144,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Feature: Matter Search
     document.getElementById('matter-search-input').addEventListener('input', (e) => {
         const term = e.target.value.toLowerCase();
-        const items = document.querySelectorAll('.matter-item');
+        const items = document.querySelectorAll('#matters-list .matter-item');
         items.forEach(item => {
-            const text = item.innerText.toLowerCase();
-            if (text.includes(term)) {
-                item.style.display = 'block';
+            const searchData = item.dataset.searchData || item.innerText.toLowerCase();
+            if (searchData.includes(term)) {
+                item.style.display = 'flex';
             } else {
                 item.style.display = 'none';
             }
@@ -455,6 +455,15 @@ function renderMatters(matters) {
         div.style.display = 'flex';
         div.style.justifyContent = 'space-between';
         div.style.alignItems = 'center';
+
+        const searchTerms = [
+            m.name || '',
+            m.external_id || '',
+            m.client_name || '',
+            m.client_email || '',
+            m.description || ''
+        ].join(' ').toLowerCase();
+        div.dataset.searchData = searchTerms;
 
         const infoDiv = document.createElement('div');
         infoDiv.style.flex = '1';
@@ -1576,9 +1585,12 @@ async function renderMatterHistory(matterId) {
             row.style.borderBottom = '1px solid var(--border-color)';
 
             row.innerHTML = `
-                <div style="flex: 1; padding-right: 10px;">
-                    <div style="font-weight: 500; font-size: 0.95em;">${escapeHtml(log.description || '(No description)')}</div>
-                    <div style="font-size: 0.8em; color: var(--text-secondary); margin-top: 4px;">${log.date} &bull; ${log.minutes}m (${log.units}u)</div>
+                <div style="display:flex; align-items:flex-start; gap:10px; flex:1;">
+                    <input type="checkbox" class="merge-checkbox" value="${log.id}" data-date="${log.date.split(' ')[0]}" onchange="handleMergeSelection()">
+                    <div style="flex: 1; min-width: 0;">
+                        <div style="font-weight: 500; font-size: 0.95em;">${escapeHtml(log.description || '(No description)')}</div>
+                        <div style="font-size: 0.8em; color: var(--text-secondary); margin-top: 4px;">${log.date} &bull; ${log.minutes}m (${log.units}u)</div>
+                    </div>
                 </div>
                 <div style="display:flex; gap:6px; align-items:center;">
                      <button class="icon-btn" onclick="editLogFromHistory(${log.id}, '${escapeHtml(log.description || '').replace(/'/g, "\\'").replace(/"/g, '&quot;')}', ${log.minutes}, '${log.date}')" title="Edit Log"
@@ -1593,6 +1605,9 @@ async function renderMatterHistory(matterId) {
             `;
             container.appendChild(row);
         });
+
+        // Reset merge button state
+        handleMergeSelection();
 
     } catch (e) {
         console.error(e);
@@ -1616,5 +1631,83 @@ async function deleteLogFromHistory(logId) {
         }
     } catch (e) {
         alert('Error deleting log');
+    }
+}
+
+function handleMergeSelection() {
+    const checkboxes = document.querySelectorAll('.merge-checkbox');
+    const checked = Array.from(checkboxes).filter(cb => cb.checked);
+    const mergeBtn = document.getElementById('merge-logs-btn');
+
+    if (checked.length === 0) {
+        // None checked, enable all
+        checkboxes.forEach(cb => { cb.disabled = false; cb.parentElement.style.opacity = '1'; });
+        if (mergeBtn) mergeBtn.style.display = 'none';
+    } else {
+        // Enforce same date
+        const selectedDate = checked[0].dataset.date;
+        checkboxes.forEach(cb => {
+            if (cb.dataset.date !== selectedDate) {
+                cb.disabled = true;
+                cb.checked = false;
+                cb.parentElement.style.opacity = '0.5';
+            } else {
+                cb.disabled = false;
+                cb.parentElement.style.opacity = '1';
+            }
+        });
+
+        // Show/hide button based on count
+        if (mergeBtn) {
+            if (checked.length >= 2) {
+                mergeBtn.style.display = 'block';
+                mergeBtn.innerText = `Merge ${checked.length} Logs`;
+            } else {
+                mergeBtn.style.display = 'none';
+            }
+        }
+    }
+}
+
+async function mergeSelectedLogs() {
+    const checkboxes = document.querySelectorAll('.merge-checkbox:checked');
+    if (checkboxes.length < 2) return;
+
+    const logIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+    const btn = document.getElementById('merge-logs-btn');
+    const originalText = btn.innerText;
+
+    if (!confirm(`Are you sure you want to merge these ${logIds.length} logs into a single record? This cannot be undone.`)) return;
+
+    btn.innerText = 'Merging...';
+    btn.disabled = true;
+
+    try {
+        const response = await fetch(`${API_BASE}/logs/merge`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ log_ids: logIds })
+        });
+
+        if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.detail || 'Failed to merge logs');
+        }
+
+        // Refresh the view
+        await loadMatters(); // Update global matter times
+        if (currentEditingMatter) {
+            // Re-render history to reflect new merged log
+            await renderMatterHistory(currentEditingMatter.id);
+        }
+
+    } catch (e) {
+        console.error(e);
+        alert('Error merging logs: ' + e.message);
+    } finally {
+        if (btn) {
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }
     }
 }
