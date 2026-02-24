@@ -218,7 +218,8 @@
                 <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 10px 0;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                     <h3 style="font-size: 1rem; margin: 0;">AI Assistant Settings</h3>
-                    <div id="ai-toggle-wrapper" onclick="toggleAiEnabled()" style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem; user-select: none;">
+                    <div id="ai-toggle-wrapper" onclick="toggleAiEnabled()"
+                        style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem; user-select: none;">
                         <span id="ai-toggle-label" style="color: var(--text-secondary);">OFF</span>
                         <input type="hidden" id="ai-enabled-toggle" value="false">
                         <div id="ai-toggle-track"
@@ -229,11 +230,13 @@
                         </div>
                     </div>
                 </div>
-                <p class="settings-help">Select an AI provider to help resolve ambiguous time entries. Keys are stored locally only.</p>
+                <p class="settings-help">Select an AI provider to help resolve ambiguous time entries. Keys are stored
+                    locally only.</p>
 
                 <div class="form-group">
                     <label for="ai-provider">AI Provider</label>
-                    <select id="ai-provider" style="width:100%; padding:12px 16px; border-radius:10px; border:1px solid var(--border-color); background:var(--input-bg);">
+                    <select id="ai-provider"
+                        style="width:100%; padding:12px 16px; border-radius:10px; border:1px solid var(--border-color); background:var(--input-bg);">
                         <option value="thefuzz">Default (No AI)</option>
                         <option value="claude">Claude (Anthropic)</option>
                         <option value="gemini">Gemini (Google)</option>
@@ -550,7 +553,7 @@
     </div>
 
     <!-- Edit Log Modal -->
-    <div id="edit-log-modal" class="modal">
+    <div id="edit-log-modal" class="modal" style="z-index: 1200;">
         <div class="modal-content">
             <div class="modal-header">
                 <h2>Edit Time Log</h2>

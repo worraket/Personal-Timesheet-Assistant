@@ -49,14 +49,20 @@ A local web app for **lawyers and legal professionals** to track billable time a
 
 ## 🚀 Quick Start
 
-### 1. Download the project
+### 1. Install Python (if you don't have it)
+
+1. Go to the official **[Python downloads page](https://www.python.org/downloads/)**
+2. Click the **"Download Python"** button for Windows
+3. Run the installer and **IMPORTANT: Ensure the box "Add Python to PATH" is checked** at the bottom of the first installer window before clicking "Install Now"
+
+### 2. Download the project
 
 1. Go to the GitHub repository page
-2. Click the green **`<> Code`** button
-3. Select **"Download ZIP"** from the dropdown
-4. Extract the ZIP to a folder of your choice (e.g. `C:\Tools\PersonalTimesheetAssistant\`)
+2. Click the green **`<> Code`** button in the top-right
+3. Select **"Download ZIP"** from the dropdown menu
+4. Extract the ZIP file to a folder of your choice (e.g. `C:\Tools\PersonalTimesheetAssistant\`)
 
-### 2. Run setup (one time only)
+### 3. Run setup (one time only)
 
 Double-click **`setup_assistant.bat`** or run it from a terminal:
 
@@ -69,14 +75,14 @@ This will:
 - Install all dependencies from `requirements.txt`
 - Initialise the SQLite database
 
-### 3. Start the app
+### 4. Start the app
 
 Double-click **`run_assistant.bat`**. It will:
 - Activate the virtual environment
 - Start the FastAPI server on `http://localhost:8000`
 - Open your browser automatically
 
-### 4. Stop the app
+### 5. Stop the app
 
 Double-click **`kill_assistant.bat`** to terminate all server processes.
 

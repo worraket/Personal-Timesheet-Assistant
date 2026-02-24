@@ -46,3 +46,7 @@ secrets.enc
 timesheet(*).db
 *backup*.db
 *.db.backup_*
+
+# Installers and Build Scripts
+*_Setup.exe
+PTA_Portable_Setup.exe
