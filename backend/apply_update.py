@@ -9,7 +9,7 @@ REPO_URL = "https://github.com/worraket/Personal-Timesheet-Assistant/archive/ref
 API_URL = "https://api.github.com/repos/worraket/Personal-Timesheet-Assistant/commits/main"
 ZIP_FILE = "update_temp.zip"
 EXTRACT_DIR = "update_extract"
-PROTECTED_PATHS = ["timesheet.db", "settings.json", "secrets.enc", "backups", ".git"]
+PROTECTED_PATHS = ["timesheet.db", "settings.json", "secrets.enc", "backups", ".git", "update_assistant.bat"]
 
 def apply_update():
     try:
