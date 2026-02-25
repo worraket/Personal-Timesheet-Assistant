@@ -137,6 +137,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // The original code had some redundant checks, removed for clarity and covered by the loop
     }
 
+    // Auto Update Setup
+    const updateBtn = document.getElementById('check-update-btn');
+    if (updateBtn) {
+        updateBtn.addEventListener('click', checkAndRunUpdate);
+    }
+
     // Feature: Default Date
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('log-date').value = today;
@@ -1861,8 +1867,49 @@ async function updateStickyNoteText(id, newText) {
     }
 }
 
+// -----------------------------------------
+// AUTO UPDATE
+// -----------------------------------------
+async function checkAndRunUpdate() {
+    const btn = document.getElementById('check-update-btn');
+    const statusText = document.getElementById('update-status-text');
 
+    btn.disabled = true;
+    btn.textContent = "Checking...";
+    statusText.textContent = "Connecting to GitHub...";
 
+    try {
+        const res = await fetch('/api/update/check');
+        if (!res.ok) throw new Error("Failed to check for updates");
+        const data = await res.json();
+
+        if (data.update_available) {
+            statusText.textContent = `New version available! (${data.latest_sha})`;
+            statusText.style.color = "var(--danger-color)";
+
+            if (confirm(`An update is available (Version ${data.latest_sha}).\n\nTo install it safely, the server will shut down and a black terminal window will appear to apply the changes.\n\nDo you want to proceed?`)) {
+
+                // Trigger the update run
+                await fetch('/api/update/run', { method: 'POST' });
+                alert("Update sequence initiated.\n\nPlease check the new terminal window that opened. You can close this browser tab.");
+                window.close();
+            } else {
+                statusText.textContent = "Update cancelled.";
+                statusText.style.color = "var(--text-secondary)";
+            }
+        } else {
+            statusText.textContent = `You are on the latest version (${data.current_sha}).`;
+            statusText.style.color = "var(--accent-color)";
+        }
+    } catch (e) {
+        statusText.textContent = "Error: " + e.message;
+        statusText.style.color = "var(--danger-color)";
+        console.error(e);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = "Check for Updates";
+    }
+}
 
 // Auto-load dashboard
 if (document.readyState === 'loading') {

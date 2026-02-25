@@ -15,6 +15,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **Automatic Database Backups**: 
   - Automatically creates a backup of `timesheet.db` and `settings.json` into a local `backups/` directory on application startup and every 24 hours.
   - Retains only the 7 most recent backups to save disk space.
+- **Auto Update Feature**: 
+  - A Git-free update mechanism that downloads the latest release directly from GitHub via a ZIP file.
+  - Safely extracts and applies updates without overwriting user data (`timesheet.db`, `settings.json`, `secrets.enc`).
+  - Accessible via a new "Check for Updates" button in the Settings UI.
 - **Matters Overview Modal**: A comprehensive table view to see all matters, their status, external IDs, and total time logged at a glance.
 
 ### Changed

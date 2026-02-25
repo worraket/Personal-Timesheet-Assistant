@@ -59,6 +59,7 @@ from . import settings_service
 from . import nlp_service
 from . import ai_service
 from . import dashboard_service
+from . import update_service
 from pydantic import BaseModel
 
 class SettingsRequest(BaseModel):
@@ -299,6 +300,15 @@ class StickyNoteUpdate(BaseModel):
 def update_sticky_note(note_id: str, update: StickyNoteUpdate):
     dashboard_service.update_sticky_note(note_id, update.text)
     return {"message": "Note updated"}
+
+@app.get("/api/update/check")
+def check_for_updates():
+    return update_service.check_for_updates()
+
+@app.post("/api/update/run")
+def trigger_update():
+    update_service.run_update_sequence()
+    return {"message": "Update initiated. Server is shutting down."}
 
 @app.post("/api/scan")
 def scan_outlook(db: Session = Depends(database.get_db)):

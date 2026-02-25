@@ -16,6 +16,7 @@ A local web app for **lawyers and legal professionals** to track billable time a
 | 📋 **Matter Management** | Add, edit, and view all matters including client name, client email, external ID, and description |
 | 📊 **Main Dashboard** | Integrated activity dashboard featuring a Monday-Friday bar chart and an editable Sticky Note Reminder Board |
 | 💾 **Automatic Backups** | Daily local backups (max 7-day retention) of the SQLite database and settings to prevent data loss |
+| 🔄 **Auto Update** | Built-in, 1-click upgrade button in Settings that downloads and safely applies the latest releases without requiring Git |
 | 📈 **Summary Report** | Units and minutes logged today, this week, this month, and last month — per matter and overall. Sorted by most recent entry |
 | ✏️ **Edit / Delete Logs** | Edit or delete any time log from the Summary or Matter Details panels |
 | ➕ **Add Time from Matter Details** | Directly log time against any matter from its detail popup with a date picker and minute input |
@@ -32,6 +33,7 @@ See the **[CHANGELOG.md](CHANGELOG.md)** for a complete history of updates.
 ### What's New in v1.1.0
 - **Main Dashboard**: A side-by-side dashboard layout featuring a weekly activity chart and a dynamic Sticky Note reminder board.
 - **Automatic Database Backups**: Automatically creates a copy of `timesheet.db` and `settings.json` on application startup and every 24 hours.
+- **Auto Update Engine**: A Git-free auto-update feature allowing users to download and install new features seamlessly via Settings.
 - **Matters Overview Modal**: A table-based view of all active and closed matters.
 
 ---
@@ -199,6 +201,8 @@ Settings are stored in `settings.json` (not in the database). You can edit them 
 | `PUT` | `/api/logs/{id}` | Edit a time log |
 | `DELETE` | `/api/logs/{id}` | Delete a time log |
 | `GET` | `/api/dashboard` | Get weekly stats and sticky note reminders |
+| `GET` | `/api/update/check` | Check GitHub for new versions |
+| `POST` | `/api/update/run` | Execute the auto-update workflow |
 | `GET` | `/api/summary` | Aggregated summary by matter and period |
 | `GET` | `/api/export` | Download CSV export |
 | `GET` | `/api/settings` | Get all settings (user, theme, AI config) |
