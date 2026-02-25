@@ -34,6 +34,9 @@ echo ==============================================
 echo   Update Successful!
 echo ==============================================
 echo.
-echo You may now restart the application using run_assistant.bat
+echo Press any key to restart the Personal Timesheet Assistant!
 echo.
 pause
+
+start "" "run_assistant.bat"
+exit
