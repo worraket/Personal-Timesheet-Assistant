@@ -14,7 +14,9 @@ from . import migrate_db
 from . import migrate_db_closed
 from . import backup_service
 
+from . import settings_service
 database.init_db()
+settings_service.migrate_sticky_notes()
 
 from fastapi.staticfiles import StaticFiles
 from fastapi import UploadFile, File
@@ -73,6 +75,8 @@ class SettingsRequest(BaseModel):
     ui_btn_manual_color: str = "#f5f5f5"
     ui_btn_log_color: str = "#007AFF"
     ui_panel_opacity: float = 0.4
+    ui_card_opacity: float = 0.9
+    ui_chart_bar_color: str = "#0071e3"
     ui_timer_color: str = "#FF3B30"
     ui_btn_timer_color: str = "#ffffff"
     ui_btn_matters_color: str = "#f8fafc"
@@ -99,6 +103,8 @@ def get_settings():
     settings["ui_btn_manual_color"] = settings_service.get_setting("ui_btn_manual_color", "#f5f5f5")
     settings["ui_btn_log_color"] = settings_service.get_setting("ui_btn_log_color", "#007AFF")
     settings["ui_panel_opacity"] = float(settings_service.get_setting("ui_panel_opacity", "0.4"))
+    settings["ui_card_opacity"] = float(settings_service.get_setting("ui_card_opacity", "0.9"))
+    settings["ui_chart_bar_color"] = settings_service.get_setting("ui_chart_bar_color", "#0071e3")
     settings["ui_timer_color"] = settings_service.get_setting("ui_timer_color", "#FF3B30")
     settings["ui_btn_timer_color"] = settings_service.get_setting("ui_btn_timer_color", "#ffffff")
     settings["ui_btn_matters_color"] = settings_service.get_setting("ui_btn_matters_color", "#f8fafc")
@@ -127,6 +133,8 @@ def update_settings(request: SettingsRequest):
     settings_service.set_setting("ui_btn_manual_color", request.ui_btn_manual_color)
     settings_service.set_setting("ui_btn_log_color", request.ui_btn_log_color)
     settings_service.set_setting("ui_panel_opacity", str(request.ui_panel_opacity))
+    settings_service.set_setting("ui_card_opacity", str(request.ui_card_opacity))
+    settings_service.set_setting("ui_chart_bar_color", request.ui_chart_bar_color)
     settings_service.set_setting("ui_timer_color", request.ui_timer_color)
     settings_service.set_setting("ui_btn_timer_color", request.ui_btn_timer_color)
     settings_service.set_setting("ui_btn_matters_color", request.ui_btn_matters_color)
@@ -293,12 +301,16 @@ def delete_sticky_note(note_id: str):
     dashboard_service.delete_manual_note(note_id)
     return {"message": "Note deleted"}
 
+from typing import Optional
+
 class StickyNoteUpdate(BaseModel):
-    text: str
+    text: Optional[str] = None
+    title: Optional[str] = None
+    color: Optional[str] = None
 
 @app.put("/api/sticky-notes/{note_id}")
 def update_sticky_note(note_id: str, update: StickyNoteUpdate):
-    dashboard_service.update_sticky_note(note_id, update.text)
+    dashboard_service.update_sticky_note(note_id, update.dict(exclude_unset=True))
     return {"message": "Note updated"}
 
 @app.get("/api/update/check")

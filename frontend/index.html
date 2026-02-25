@@ -363,6 +363,20 @@
                     <input type="range" id="theme-panel-opacity" min="0" max="1" step="0.05" value="0.4"
                         style="width: 100%; margin-top: 8px;">
                 </div>
+                <div class="form-group">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <label for="theme-card-opacity">Dashboard Card Opacity</label>
+                        <span id="opacity-card-value" style="font-weight: 600; color: var(--accent-color);">90%</span>
+                    </div>
+                    <input type="range" id="theme-card-opacity" min="0" max="1" step="0.05" value="0.9"
+                        style="width: 100%; margin-top: 8px;">
+                </div>
+                <div class="form-group"
+                    style="flex-direction: row; align-items: center; justify-content: space-between;">
+                    <label for="theme-chart-color">Chart Bar Color</label>
+                    <input type="color" id="theme-chart-color" value="#0071e3"
+                        style="width: 60px; height: 40px; padding: 2px;">
+                </div>
                 <div class="form-group"
                     style="flex-direction: row; align-items: center; justify-content: space-between;">
                     <label for="theme-timer-color">Timer Indicator Color</label>
@@ -404,8 +418,8 @@
                 <h3 style="font-size: 1rem; margin-bottom: 12px;">Application Updates</h3>
                 <div class="form-group" style="display: flex; flex-direction: column; gap: 8px;">
                     <div style="display: flex; align-items: center; justify-content: space-between;">
-                        <span id="update-status-text" style="color: var(--text-secondary); font-size: 0.9rem;">Checking
-                            version...</span>
+                        <span id="update-status-text" style="color: var(--text-secondary); font-size: 0.9rem;">Ready to
+                            check for updates.</span>
                         <button type="button" id="check-update-btn" class="btn"
                             style="background: var(--btn-manual-bg); color: var(--text-primary); padding: 6px 16px;">Check
                             for Updates</button>
@@ -722,6 +736,7 @@
                 <span class="close-modal" id="close-sticky-modal">&times;</span>
             </div>
             <div class="settings-form">
+                <input type="hidden" id="sticky-id">
                 <div class="form-group">
                     <label>Title</label>
                     <input type="text" id="sticky-title" placeholder="Note Title" autocomplete="off">
@@ -741,6 +756,7 @@
                         <option value="green">Green</option>
                         <option value="red">Red</option>
                         <option value="purple">Purple</option>
+                        <option value="pink">Pink</option>
                     </select>
                 </div>
                 <button id="save-sticky-btn" class="btn save-settings-btn" onclick="saveManualStickyNote()">Save

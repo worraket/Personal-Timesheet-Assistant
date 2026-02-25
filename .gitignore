@@ -40,6 +40,7 @@ Thumbs.db
 # Settings
 settings.json
 secrets.enc
+stickynote.json
 
 # Backup Database Files
 *.db.bak

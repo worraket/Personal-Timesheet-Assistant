@@ -111,7 +111,8 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: 'close-missing-duration-modal', modal: missingDurationModal },
         { id: 'close-ambiguous-modal', modal: ambiguousMatterModal },
         { id: 'close-edit-log-modal', modal: editLogModal },
-        { id: 'close-matters-overview-modal', modal: mattersOverviewModal }
+        { id: 'close-matters-overview-modal', modal: mattersOverviewModal },
+        { id: 'close-sticky-modal', modal: document.getElementById('add-sticky-modal') }
     ];
 
     closeButtons.forEach(btn => {
@@ -130,7 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Close on click outside
     window.onclick = (event) => {
-        const modals = [settingsModal, summaryModal, resetModal, addMatterModal, detailsModal, missingDurationModal, ambiguousMatterModal, editLogModal, mattersOverviewModal];
+        const modals = [settingsModal, summaryModal, resetModal, addMatterModal, detailsModal, missingDurationModal, ambiguousMatterModal, editLogModal, mattersOverviewModal, document.getElementById('add-sticky-modal')];
         modals.forEach(modal => {
             if (event.target == modal) modal.style.display = 'none';
         });
@@ -174,6 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('timer-stop-modal').style.display = 'none';
             document.getElementById('timer-matter-picker-modal').style.display = 'none';
             document.getElementById('matter-details-modal').style.display = 'none';
+            document.getElementById('add-sticky-modal').style.display = 'none';
         }
     });
 
@@ -243,6 +245,12 @@ async function showSettings() {
         document.getElementById('theme-panel-opacity').value = opacity;
         document.getElementById('opacity-value').innerText = Math.round(opacity * 100) + '%';
 
+        const cardOpacity = settings.ui_card_opacity !== undefined ? settings.ui_card_opacity : 0.9;
+        document.getElementById('theme-card-opacity').value = cardOpacity;
+        document.getElementById('opacity-card-value').innerText = Math.round(cardOpacity * 100) + '%';
+
+        document.getElementById('theme-chart-color').value = settings.ui_chart_bar_color || '#0071e3';
+
         // Timer indicator color
         const timerColor = settings.ui_timer_color || '#FF3B30';
         document.getElementById('theme-timer-color').value = timerColor;
@@ -277,6 +285,8 @@ async function saveSettings() {
         ui_btn_manual_color: document.getElementById('theme-manual-btn').value,
         ui_btn_log_color: document.getElementById('theme-log-btn').value,
         ui_panel_opacity: parseFloat(document.getElementById('theme-panel-opacity').value),
+        ui_card_opacity: parseFloat(document.getElementById('theme-card-opacity').value),
+        ui_chart_bar_color: document.getElementById('theme-chart-color').value,
         ui_timer_color: document.getElementById('theme-timer-color').value,
         ui_btn_timer_color: document.getElementById('theme-timer-btn').value,
         ui_btn_matters_color: document.getElementById('theme-matters-btn').value,
@@ -1225,6 +1235,12 @@ function applyTheme(settings) {
         root.style.setProperty('--panel-opacity', settings.ui_panel_opacity);
         root.style.setProperty('--panel-blur', (settings.ui_panel_opacity * 30) + 'px');
     }
+    if (settings.ui_card_opacity !== undefined) {
+        root.style.setProperty('--card-opacity', settings.ui_card_opacity);
+    }
+    if (settings.ui_chart_bar_color) {
+        root.style.setProperty('--chart-bar-color', settings.ui_chart_bar_color);
+    }
 
     // Background Image
     if (settings.ui_bg_image_url) {
@@ -1255,6 +1271,24 @@ function setupThemeListeners() {
     document.getElementById('theme-log-btn').addEventListener('input', (e) => {
         root.style.setProperty('--log-btn-bg', e.target.value);
     });
+
+    document.getElementById('theme-chart-color').addEventListener('input', (e) => {
+        root.style.setProperty('--chart-bar-color', e.target.value);
+    });
+
+    document.getElementById('theme-panel-opacity').addEventListener('input', (e) => {
+        const val = e.target.value;
+        root.style.setProperty('--panel-opacity', val);
+        root.style.setProperty('--panel-blur', (val * 30) + 'px');
+        document.getElementById('opacity-value').innerText = Math.round(val * 100) + '%';
+    });
+
+    document.getElementById('theme-card-opacity').addEventListener('input', (e) => {
+        const val = e.target.value;
+        root.style.setProperty('--card-opacity', val);
+        document.getElementById('opacity-card-value').innerText = Math.round(val * 100) + '%';
+    });
+
     document.getElementById('theme-timer-btn').addEventListener('input', (e) => {
         root.style.setProperty('--timer-btn-bg', e.target.value);
     });
@@ -1805,10 +1839,7 @@ function renderStickyNotes(data) {
         editBtn.innerHTML = '✎';
         editBtn.onclick = (e) => {
             e.stopPropagation();
-            const newText = prompt("Edit note text:", note.text);
-            if (newText !== null && newText.trim() !== "") {
-                updateStickyNoteText(note.id, newText.trim());
-            }
+            openStickyModalEdit(note);
         };
 
         if (note.matter_id) {
@@ -1829,19 +1860,47 @@ function renderStickyNotes(data) {
 }
 
 function openStickyModal() {
+    document.getElementById('sticky-id').value = '';
     document.getElementById('sticky-title').value = '';
     document.getElementById('sticky-text').value = '';
+    document.getElementById('sticky-color').value = 'yellow';
     document.getElementById('add-sticky-modal').style.display = 'block';
+    const titleElem = document.querySelector('#add-sticky-modal .modal-header h2');
+    if (titleElem) titleElem.textContent = 'Add Sticky Note';
+}
+
+function openStickyModalEdit(note) {
+    document.getElementById('sticky-id').value = note.id;
+    document.getElementById('sticky-title').value = note.title || '';
+    document.getElementById('sticky-text').value = note.text || '';
+    document.getElementById('sticky-color').value = note.color || 'yellow';
+    document.getElementById('add-sticky-modal').style.display = 'block';
+    const titleElem = document.querySelector('#add-sticky-modal .modal-header h2');
+    if (titleElem) titleElem.textContent = 'Edit Sticky Note';
 }
 
 async function saveManualStickyNote() {
+    const id = document.getElementById('sticky-id').value;
     const title = document.getElementById('sticky-title').value.trim();
     const text = document.getElementById('sticky-text').value.trim();
     const color = document.getElementById('sticky-color').value;
     if (!title && !text) return;
-    const note = { id: 'manual_' + Date.now(), title, text, color };
+
     try {
-        await fetch('/api/sticky-notes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(note) });
+        if (id && id.trim() !== '') {
+            await fetch(`/api/sticky-notes/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text, title, color })
+            });
+        } else {
+            const note = { id: 'manual_' + Date.now(), title, text, color };
+            await fetch('/api/sticky-notes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(note)
+            });
+        }
         document.getElementById('add-sticky-modal').style.display = 'none';
         loadDashboard();
     } catch (e) { alert('Error: ' + e.message); }
@@ -1887,7 +1946,13 @@ async function checkAndRunUpdate() {
             statusText.textContent = `New version available! (${data.latest_sha})`;
             statusText.style.color = "var(--danger-color)";
 
-            if (confirm(`An update is available (Version ${data.latest_sha}).\n\nTo install it safely, the server will shut down and a black terminal window will appear to apply the changes.\n\nDo you want to proceed?`)) {
+            let confirmMsg = `An update is available (Version ${data.latest_sha}).\n\nTo install it safely, the server will shut down and a black terminal window will appear to apply the changes.\n\nDo you want to proceed?`;
+
+            if (data.current_sha === "unknown") {
+                confirmMsg = `Your current version is unknown (likely due to a manual ZIP download).\n\nWould you like to sync to the latest version (${data.latest_sha}) from GitHub?\nThis will ensure your version is tracked for future updates.\n\nTo install it safely, the server will shut down and a black terminal window will appear to apply the changes.\n\nDo you want to proceed?`;
+            }
+
+            if (confirm(confirmMsg)) {
 
                 // Trigger the update run
                 await fetch('/api/update/run', { method: 'POST' });

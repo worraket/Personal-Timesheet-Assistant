@@ -42,11 +42,7 @@ def get_dynamic_reminders(db: Session):
     now = datetime.now()
     reminders = []
     
-    overrides_str = settings_service.get_setting("sticky_overrides", "{}")
-    try:
-        overrides = json.loads(overrides_str)
-    except:
-        overrides = {}
+    overrides = settings_service.get_sticky_overrides()
     
     for m in matters:
         if m.status_flag == "green":
@@ -55,14 +51,16 @@ def get_dynamic_reminders(db: Session):
         # Urgent Matters (Red flag)
         if m.status_flag == "red":
             note_id = f"dynamic_urgent_{m.id}"
-            custom_text = overrides.get(note_id)
+            ov = overrides.get(note_id, {})
+            if isinstance(ov, str): ov = {"text": ov}
+            
             reminders.append({
                 "id": note_id,
                 "type": "urgent",
-                "title": "Urgent Matter",
-                "text": custom_text if custom_text else f"{m.name} requires immediate attention.",
+                "title": ov.get("title", "Urgent Matter"),
+                "text": ov.get("text", f"{m.name} requires immediate attention."),
                 "matter_id": m.id,
-                "color": "red"
+                "color": ov.get("color", "red")
             })
             continue # Prioritize urgent over idle/new
             
@@ -72,14 +70,16 @@ def get_dynamic_reminders(db: Session):
         if not logs and m.source_email_id:
             ext_id_str = f" [{m.external_id}]" if m.external_id else ""
             note_id = f"dynamic_new_{m.id}"
-            custom_text = overrides.get(note_id)
+            ov = overrides.get(note_id, {})
+            if isinstance(ov, str): ov = {"text": ov}
+            
             reminders.append({
                 "id": note_id,
                 "type": "new",
-                "title": f"New Scan{ext_id_str}",
-                "text": custom_text if custom_text else f"Evaluate scanned matter: {m.name}",
+                "title": ov.get("title", f"New Scan{ext_id_str}"),
+                "text": ov.get("text", f"Evaluate scanned matter: {m.name}"),
                 "matter_id": m.id,
-                "color": "green"
+                "color": ov.get("color", "green")
             })
             continue
             
@@ -88,14 +88,16 @@ def get_dynamic_reminders(db: Session):
             latest_log_date = max(log.log_date for log in logs)
             if (now - latest_log_date).days > 3:
                 note_id = f"dynamic_idle_{m.id}"
-                custom_text = overrides.get(note_id)
+                ov = overrides.get(note_id, {})
+                if isinstance(ov, str): ov = {"text": ov}
+                
                 reminders.append({
                     "id": note_id,
                     "type": "idle",
-                    "title": "Idle Matter",
-                    "text": custom_text if custom_text else f"No time logged for {m.name} in over 3 days.",
+                    "title": ov.get("title", "Idle Matter"),
+                    "text": ov.get("text", f"No time logged for {m.name} in over 3 days."),
                     "matter_id": m.id,
-                    "color": "yellow"
+                    "color": ov.get("color", "yellow")
                 })
                 
     return reminders
@@ -122,19 +124,30 @@ def delete_manual_note(note_id: str):
     filtered = [n for n in notes if n.get("id") != note_id]
     settings_service.save_sticky_notes(filtered)
 
-def update_sticky_note(note_id: str, text: str):
-    import json
+def update_sticky_note(note_id: str, updates: dict):
     if note_id.startswith("dynamic_"):
-        overrides_str = settings_service.get_setting("sticky_overrides", "{}")
-        try:
-            overrides = json.loads(overrides_str)
-        except:
-            overrides = {}
-        overrides[note_id] = text
-        settings_service.set_setting("sticky_overrides", json.dumps(overrides))
+        overrides = settings_service.get_sticky_overrides()
+            
+        if note_id not in overrides or isinstance(overrides.get(note_id), str):
+            old_val = overrides.get(note_id, "")
+            overrides[note_id] = {"text": old_val} if old_val else {}
+            
+        if "text" in updates:
+            overrides[note_id]["text"] = updates["text"]
+        if "title" in updates:
+            overrides[note_id]["title"] = updates["title"]
+        if "color" in updates:
+            overrides[note_id]["color"] = updates["color"]
+            
+        settings_service.save_sticky_overrides(overrides)
     else:
         notes = settings_service.get_sticky_notes()
         for n in notes:
             if n.get("id") == note_id:
-                n["text"] = text
+                if "text" in updates:
+                    n["text"] = updates["text"]
+                if "title" in updates:
+                    n["title"] = updates["title"]
+                if "color" in updates:
+                    n["color"] = updates["color"]
         settings_service.save_sticky_notes(notes)

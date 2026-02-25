@@ -11,6 +11,7 @@ except ImportError:
 
 SETTINGS_FILE = "settings.json"
 SECRETS_FILE = "secrets.enc"
+STICKY_NOTES_FILE = "stickynote.json"
 
 # Keys that are stored encrypted in secrets.enc
 _SECRET_KEYS = frozenset({
@@ -108,14 +109,36 @@ def get_user_identifiers():
         "email": get_setting("user_email", "")
     }
 
+def _load_sticky_data() -> dict:
+    if not os.path.exists(STICKY_NOTES_FILE):
+        return {}
+    try:
+        with open(STICKY_NOTES_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+def _save_sticky_data(data: dict):
+    with open(STICKY_NOTES_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2)
+
 def get_sticky_notes() -> list:
-    data = _load_settings()
+    data = _load_sticky_data()
     return data.get("sticky_notes", [])
 
 def save_sticky_notes(notes: list):
-    data = _load_settings()
+    data = _load_sticky_data()
     data["sticky_notes"] = notes
-    _save_settings(data)
+    _save_sticky_data(data)
+
+def get_sticky_overrides() -> dict:
+    data = _load_sticky_data()
+    return data.get("sticky_overrides", {})
+
+def save_sticky_overrides(overrides: dict):
+    data = _load_sticky_data()
+    data["sticky_overrides"] = overrides
+    _save_sticky_data(data)
 
 
 # --- Migration functions ---
@@ -158,3 +181,28 @@ def migrate_plaintext_keys():
         _save_secrets(secrets)
         _save_settings(data)
         print(f"Migrated API keys from settings.json to {SECRETS_FILE}")
+
+def migrate_sticky_notes():
+    """Move sticky notes and overrides out of settings.json to stickynote.json"""
+    data = _load_settings()
+    migrated = False
+    
+    sticky_data = _load_sticky_data()
+    
+    if "sticky_notes" in data:
+        sticky_data["sticky_notes"] = data["sticky_notes"]
+        del data["sticky_notes"]
+        migrated = True
+        
+    if "sticky_overrides" in data:
+        try:
+            sticky_data["sticky_overrides"] = json.loads(data["sticky_overrides"])
+        except:
+            sticky_data["sticky_overrides"] = data["sticky_overrides"]
+        del data["sticky_overrides"]
+        migrated = True
+        
+    if migrated:
+        _save_sticky_data(sticky_data)
+        _save_settings(data)
+        print(f"Migrated sticky notes to {STICKY_NOTES_FILE}")

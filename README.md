@@ -30,6 +30,11 @@ A local web app for **lawyers and legal professionals** to track billable time a
 
 See the **[CHANGELOG.md](CHANGELOG.md)** for a complete history of updates.
 
+### What's New in v1.2.0
+- **Advanced Dashboard Theming**: New controls in settings to pinpoint exact colors for your Weekly Activity chart and set transparency levels exclusively for dashboard cards.
+- **Dedicated Storage**: Sticky notes now utilize their very own structured local cache (`stickynote.json`).
+- **Improved Interaction**: Sticky note pop-ups now support Esc-key and outside-click closures for a vastly improved UX.
+
 ### What's New in v1.1.0
 - **Main Dashboard**: A side-by-side dashboard layout featuring a weekly activity chart and a dynamic Sticky Note reminder board.
 - **Automatic Database Backups**: Automatically creates a copy of `timesheet.db` and `settings.json` on application startup and every 24 hours.
@@ -152,6 +157,7 @@ Settings are stored in `settings.json` (not in the database). You can edit them 
 |---|---|
 | Background colours | Gradient start/end for the app background |
 | Button colours | Individual colour picker for each button: Log, Scan, Manual, Timer, Matters, Reset, Summary, Show Closed |
+| Dashboard aesthetics | Dedicated color picker for the Weekly Activity chart and adjustable panel capacity explicitly for dashboard widgets |
 | Panel opacity | Glassmorphism panel transparency (0–1) |
 | Background image | Upload a custom background photo |
 | Timer indicator colour | Colour of the pulsing dot on the timer widget |
@@ -235,7 +241,7 @@ Settings are stored in `settings.json` (not in the database). You can edit them 
 
 - The Outlook scanner reads **locally cached emails** via the Outlook COM API — it does not connect directly to a mail server and requires the Outlook desktop app to be installed.
 - Time units are calculated using the **6-minute billing unit** standard common in legal practice (1 hour = 10 units).
-- `timesheet.db`, `settings.json`, and `secrets.enc` are excluded from version control via `.gitignore` — your data stays local.
+- `timesheet.db`, `settings.json`, `stickynote.json`, and `secrets.enc` are excluded from version control via `.gitignore` — your data stays local.
 - **API Key Encryption**: All API keys are encrypted in `secrets.enc` using Windows DPAPI (Data Protection API). Keys are bound to your Windows user account and cannot be read by other users on the same machine. Encryption is transparent — you just configure keys in Settings and they're automatically encrypted.
 - When rolling out to other users, each user's API keys are independently encrypted with their own Windows credentials. Copying the database to a new machine will not impact database contents (matters and time logs are unencrypted); AI will only work if the user adds their own API keys (old encrypted keys from previous user won't decrypt on new user's account).
 

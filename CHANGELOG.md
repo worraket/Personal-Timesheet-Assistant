@@ -4,6 +4,17 @@ All notable changes to the **Personal Timesheet Assistant** will be documented i
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to Semantic Versioning.
 
+## [1.2.0] - 2026-02-25
+
+### Added
+- **UI Customization**: Added new UI controls to the Theme settings allowing users to customize the color of the Weekly Activity Chart bars and the opacity of Dashboard Cards independently.
+- **Dedicated Sticky Notes Storage**: Sticky notes data has been decoupled from the application settings file and migrated to its own `stickynote.json` file for cleaner architecture.
+- **Improved Close Handlers**: Re-designed sticky note modals to intuitively close when pressing the `Esc` key, clicking the `X` button, or clicking outside the modal area.
+
+### Changed
+- Removed legacy data setup script (`process_excel.py`) to reduce folder clutter.
+- Hardened `.gitignore` to prevent `stickynote.json` from ever being pushed into source control.
+
 ## [1.1.0] - 2026-02-25
 
 ### Added

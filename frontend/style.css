@@ -12,6 +12,7 @@
     --glass-bg: rgba(255, 255, 255, 0.85);
     --glass-border: rgba(255, 255, 255, 0.4);
     --shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+    --card-opacity: 0.9;
     --card-bg: rgba(255, 255, 255, 0.9);
     --font-heading: 'Outfit', sans-serif;
     --font-body: 'Inter', sans-serif;
@@ -1141,7 +1142,7 @@ body {
 }
 
 .dashboard-card {
-    background: var(--card-bg);
+    background: rgba(255, 255, 255, var(--card-opacity));
     border-radius: 16px;
     border: 1px solid var(--glass-border);
     padding: 20px;
@@ -1184,7 +1185,7 @@ body {
 
 .chart-bar {
     width: 24px;
-    background: var(--accent-color);
+    background: var(--chart-bar-color, var(--accent-color));
     border-radius: 6px 6px 0 0;
     min-height: 4px;
     transition: height 0.5s ease;
@@ -1281,6 +1282,10 @@ body {
 
 .sticky-purple {
     background-color: #e1bee7;
+}
+
+.sticky-pink {
+    background-color: #e8c3fa;
 }
 
 .sticky-title {
