@@ -108,6 +108,15 @@ def get_user_identifiers():
         "email": get_setting("user_email", "")
     }
 
+def get_sticky_notes() -> list:
+    data = _load_settings()
+    return data.get("sticky_notes", [])
+
+def save_sticky_notes(notes: list):
+    data = _load_settings()
+    data["sticky_notes"] = notes
+    _save_settings(data)
+
 
 # --- Migration functions ---
 

@@ -1711,3 +1711,163 @@ async function mergeSelectedLogs() {
         }
     }
 }
+
+
+// ===== DASHBOARD LOGIC =====
+let dashboardVisible = true;
+
+function toggleDashboard() {
+    const container = document.getElementById('dashboard-container');
+    const btn = document.getElementById('toggle-dashboard-btn');
+    dashboardVisible = !dashboardVisible;
+    if (dashboardVisible) {
+        container.style.display = 'flex';
+        btn.classList.add('active-toggle');
+        loadDashboard();
+    } else {
+        container.style.display = 'none';
+        btn.classList.remove('active-toggle');
+    }
+}
+
+async function loadDashboard() {
+    if (!dashboardVisible) return;
+    try {
+        const res = await fetch('/api/dashboard');
+        if (!res.ok) throw new Error('Failed to load dashboard');
+        const data = await res.json();
+        renderWeeklyChart(data.weekly_stats);
+        renderStickyNotes(data.sticky_notes);
+    } catch (e) {
+        console.error('Dashboard error:', e);
+    }
+}
+
+function renderWeeklyChart(stats) {
+    const chart = document.getElementById('weekly-chart');
+    const rangeLabel = document.getElementById('dashboard-week-range');
+    chart.innerHTML = '';
+    if (!stats || stats.length === 0) return;
+    rangeLabel.textContent = `${stats[0].date} - ${stats[stats.length - 1].date}`;
+    const maxMinutes = Math.max(...stats.map(s => s.minutes), 60);
+    stats.forEach(day => {
+        const percentage = Math.min((day.minutes / maxMinutes) * 100, 100);
+        const container = document.createElement('div');
+        container.className = 'chart-bar-container';
+        const valueLabel = document.createElement('div');
+        valueLabel.className = 'chart-bar-value';
+        valueLabel.textContent = day.minutes >= 60 ? `${(day.minutes / 60).toFixed(1)}h` : `${day.minutes}m`;
+        const bar = document.createElement('div');
+        bar.className = 'chart-bar';
+        bar.style.height = `${percentage}%`;
+        const nameLabel = document.createElement('div');
+        nameLabel.className = 'chart-bar-label';
+        nameLabel.textContent = day.day;
+        container.appendChild(valueLabel);
+        container.appendChild(bar);
+        container.appendChild(nameLabel);
+        chart.appendChild(container);
+    });
+}
+
+function renderStickyNotes(data) {
+    const grid = document.getElementById('sticky-notes-grid');
+    grid.innerHTML = '';
+    const allNotes = [...(data.dynamic || []), ...(data.manual || [])];
+    if (allNotes.length === 0) {
+        grid.innerHTML = '<div style="color:var(--text-secondary); padding: 12px;">No reminders!</div>';
+        return;
+    }
+    allNotes.forEach(note => {
+        const div = document.createElement('div');
+        div.className = `sticky-note sticky-${note.color || 'yellow'}`;
+        div.innerHTML = `<div class="sticky-title">${escapeHtml(note.title)}</div><div class="sticky-text">${escapeHtml(note.text).replace(/\n/g, '<br>')}</div>`;
+        const delBtn = document.createElement('button');
+        delBtn.className = 'sticky-delete';
+        delBtn.innerHTML = '×';
+        delBtn.onclick = (e) => {
+            e.stopPropagation();
+            if (note.id && note.id.startsWith('dynamic_')) {
+                alert('Dynamic reminders clear automatically when you act on the matter.');
+            } else {
+                deleteStickyNote(note.id);
+            }
+        };
+
+        const editBtn = document.createElement('button');
+        editBtn.className = 'sticky-edit';
+        editBtn.innerHTML = '✎';
+        editBtn.onclick = (e) => {
+            e.stopPropagation();
+            const newText = prompt("Edit note text:", note.text);
+            if (newText !== null && newText.trim() !== "") {
+                updateStickyNoteText(note.id, newText.trim());
+            }
+        };
+
+        if (note.matter_id) {
+            div.style.cursor = 'pointer';
+            div.onclick = () => {
+                const matter = allMatters.find(m => m.id === note.matter_id);
+                if (matter) {
+                    const input = document.getElementById('chat-input');
+                    input.value = `Worked on ${matter.name} `;
+                    input.focus();
+                }
+            };
+        }
+        div.appendChild(editBtn);
+        div.appendChild(delBtn);
+        grid.appendChild(div);
+    });
+}
+
+function openStickyModal() {
+    document.getElementById('sticky-title').value = '';
+    document.getElementById('sticky-text').value = '';
+    document.getElementById('add-sticky-modal').style.display = 'block';
+}
+
+async function saveManualStickyNote() {
+    const title = document.getElementById('sticky-title').value.trim();
+    const text = document.getElementById('sticky-text').value.trim();
+    const color = document.getElementById('sticky-color').value;
+    if (!title && !text) return;
+    const note = { id: 'manual_' + Date.now(), title, text, color };
+    try {
+        await fetch('/api/sticky-notes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(note) });
+        document.getElementById('add-sticky-modal').style.display = 'none';
+        loadDashboard();
+    } catch (e) { alert('Error: ' + e.message); }
+}
+
+async function deleteStickyNote(id) {
+    if (!confirm('Delete this note?')) return;
+    try {
+        await fetch(`/api/sticky-notes/${id}`, { method: 'DELETE' });
+        loadDashboard();
+    } catch (e) { alert('Error: ' + e.message); }
+}
+async function updateStickyNoteText(id, newText) {
+    try {
+        await fetch(`/api/sticky-notes/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: newText })
+        });
+        loadDashboard();
+    } catch (e) {
+        alert('Error updating note: ' + e.message);
+    }
+}
+
+
+
+
+// Auto-load dashboard
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadDashboard);
+} else {
+    loadDashboard();
+}
+

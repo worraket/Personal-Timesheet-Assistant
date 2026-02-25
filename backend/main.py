@@ -5,12 +5,14 @@ import csv
 import io
 import os
 import signal
+import asyncio
 from fastapi.responses import StreamingResponse, JSONResponse
 from sqlalchemy.orm import Session
 from datetime import datetime
 from . import database
 from . import migrate_db
 from . import migrate_db_closed
+from . import backup_service
 
 database.init_db()
 
@@ -23,6 +25,15 @@ os.makedirs("frontend/assets", exist_ok=True)
 
 
 app = FastAPI(title="Personal Timesheet Assistant")
+
+async def _backup_loop():
+    while True:
+        try:
+            backup_service.perform_backup()
+        except Exception as e:
+            print(f"Background backup failed: {e}")
+        # Wait 24 hours (86400 seconds)
+        await asyncio.sleep(86400)
 
 @app.on_event("startup")
 def startup_event():
@@ -37,6 +48,9 @@ def startup_event():
         print(f"Startup migration warning: {e}")
     finally:
         db.close()
+        
+    # Start the continuous backup loop
+    asyncio.create_task(_backup_loop())
 
 
 from . import outlook_service
@@ -44,6 +58,7 @@ from . import time_service
 from . import settings_service
 from . import nlp_service
 from . import ai_service
+from . import dashboard_service
 from pydantic import BaseModel
 
 class SettingsRequest(BaseModel):
@@ -251,6 +266,39 @@ def update_matter(matter_id: int, request: MatterUpdateRequest, db: Session = De
     db.commit()
     db.refresh(matter)
     return {"message": "Matter updated successfully", "matter": matter}
+
+@app.get("/api/dashboard")
+def get_dashboard(db: Session = Depends(database.get_db)):
+    weekly_stats = dashboard_service.get_weekly_stats(db)
+    sticky_notes = dashboard_service.get_all_sticky_notes(db)
+    return {
+        "weekly_stats": weekly_stats,
+        "sticky_notes": sticky_notes
+    }
+
+class StickyNote(BaseModel):
+    id: str
+    title: str
+    text: str
+    color: str
+
+@app.post("/api/sticky-notes")
+def add_sticky_note(note: StickyNote):
+    dashboard_service.add_manual_note(note.dict())
+    return {"message": "Note added"}
+
+@app.delete("/api/sticky-notes/{note_id}")
+def delete_sticky_note(note_id: str):
+    dashboard_service.delete_manual_note(note_id)
+    return {"message": "Note deleted"}
+
+class StickyNoteUpdate(BaseModel):
+    text: str
+
+@app.put("/api/sticky-notes/{note_id}")
+def update_sticky_note(note_id: str, update: StickyNoteUpdate):
+    dashboard_service.update_sticky_note(note_id, update.text)
+    return {"message": "Note updated"}
 
 @app.post("/api/scan")
 def scan_outlook(db: Session = Depends(database.get_db)):

@@ -14,7 +14,9 @@ A local web app for **lawyers and legal professionals** to track billable time a
 | ⏱️ **Timer Button** | Start/pause/resume a live timer next to Log Time, then stop and log with a description |
 | 📧 **Outlook Scanner** | Scans your local Outlook inbox to automatically discover matters from email subjects/bodies |
 | 📋 **Matter Management** | Add, edit, and view all matters including client name, client email, external ID, and description |
-| 📊 **Summary Dashboard** | Units and minutes logged today, this week, this month, and last month — per matter and overall. Sorted by most recent entry |
+| 📊 **Main Dashboard** | Integrated activity dashboard featuring a Monday-Friday bar chart and an editable Sticky Note Reminder Board |
+| 💾 **Automatic Backups** | Daily local backups (max 7-day retention) of the SQLite database and settings to prevent data loss |
+| 📈 **Summary Report** | Units and minutes logged today, this week, this month, and last month — per matter and overall. Sorted by most recent entry |
 | ✏️ **Edit / Delete Logs** | Edit or delete any time log from the Summary or Matter Details panels |
 | ➕ **Add Time from Matter Details** | Directly log time against any matter from its detail popup with a date picker and minute input |
 | 📤 **CSV Export** | Export all logs to a BOM-encoded UTF-8 CSV file (Excel-compatible, including Thai characters) |
@@ -25,17 +27,12 @@ A local web app for **lawyers and legal professionals** to track billable time a
 
 ## 📅 Version History
 
-### Latest Updates
-- **AI-First Flow with Rich Context**: When AI is enabled, it now runs first (not as fallback). AI receives matter details (ID, description, client name) for much better matching accuracy. Falls back to NLP only on AI error.
-- **Encrypted API Keys (DPAPI)**: API keys moved from plain text `settings.json` to encrypted `secrets.enc` using Windows DPAPI. Keys are encrypted per-user on the machine; no cloud storage, no master password needed.
-- **AI Toggle On/Off**: Quick toggle switch in Settings modal to enable/disable AI without removing API keys. Auto-saves immediately.
-- **8 Customisable Button Colours**: Added individual colour pickers for Timer, Matters, Reset, Summary, and Show Closed buttons (in addition to existing Log, Scan, Manual).
-- **Summary Sorted by Recency**: Summary dashboard now orders matters by most recent time entry (latest first) for better relevance.
-- **Modal Z-Index Fix**: Matter Details modal now properly appears on top of Matters Overview modal.
-- **Multi-AI Provider Support**: Optional AI enhancement with Claude, Gemini, OpenAI, and Grok APIs.
-- **Matter Status Flags**: Color-coded status indicators (Green, Yellow, Red) for easy visual tracking.
-- **Matter Sorting & Closure**: Sort by ID or Status; ability to close matters and toggle visibility.
-- **Timer Button Integration**: Live timer integrated as a button next to Log Time input.
+See the **[CHANGELOG.md](CHANGELOG.md)** for a complete history of updates.
+
+### What's New in v1.1.0
+- **Main Dashboard**: A side-by-side dashboard layout featuring a weekly activity chart and a dynamic Sticky Note reminder board.
+- **Automatic Database Backups**: Automatically creates a copy of `timesheet.db` and `settings.json` on application startup and every 24 hours.
+- **Matters Overview Modal**: A table-based view of all active and closed matters.
 
 ---
 
@@ -201,10 +198,14 @@ Settings are stored in `settings.json` (not in the database). You can edit them 
 | `POST` | `/api/log/direct` | Log time directly (matter_id + duration_minutes) |
 | `PUT` | `/api/logs/{id}` | Edit a time log |
 | `DELETE` | `/api/logs/{id}` | Delete a time log |
+| `GET` | `/api/dashboard` | Get weekly stats and sticky note reminders |
 | `GET` | `/api/summary` | Aggregated summary by matter and period |
 | `GET` | `/api/export` | Download CSV export |
 | `GET` | `/api/settings` | Get all settings (user, theme, AI config) |
 | `POST` | `/api/settings` | Save settings |
+| `POST` | `/api/sticky-notes` | Create a manual sticky note |
+| `PUT` | `/api/sticky-notes/{id}` | Edit a manual sticky note |
+| `DELETE` | `/api/sticky-notes/{id}` | Delete a manual sticky note |
 | `POST` | `/api/upload/background` | Upload background image |
 | `DELETE` | `/api/settings/background` | Remove background image |
 | `POST` | `/api/reset` | Reset all matters and logs |

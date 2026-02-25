@@ -50,3 +50,6 @@ timesheet(*).db
 # Installers and Build Scripts
 *_Setup.exe
 PTA_Portable_Setup.exe
+
+# Local Backups
+backups/
