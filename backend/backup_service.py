@@ -49,9 +49,21 @@ def perform_backup():
         except Exception as e:
             print(f"Failed to backup settings: {e}")
 
-    # 3. Apply Retention Policy
+    # 3. Backup Stickynotes JSON
+    sticky_backup_filename = f"stickynote_backup_{timestamp}.json"
+    sticky_backup_path = os.path.join(BACKUP_DIR, sticky_backup_filename)
+    
+    if os.path.exists(settings_service.STICKY_NOTES_FILE):
+        try:
+            shutil.copy2(settings_service.STICKY_NOTES_FILE, sticky_backup_path)
+            print(f"Sticky notes backup created: {sticky_backup_path}")
+        except Exception as e:
+            print(f"Failed to backup sticky notes: {e}")
+
+    # 4. Apply Retention Policy
     _cleanup_old_backups(prefix="timesheet_backup_", ext=".db", max_files=MAX_BACKUPS)
     _cleanup_old_backups(prefix="settings_backup_", ext=".json", max_files=MAX_BACKUPS)
+    _cleanup_old_backups(prefix="stickynote_backup_", ext=".json", max_files=MAX_BACKUPS)
 
 def _cleanup_old_backups(prefix: str, ext: str, max_files: int):
     """
