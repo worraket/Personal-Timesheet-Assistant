@@ -1017,7 +1017,13 @@ function renderMattersOverview(matters) {
 
 function filterMattersOverview(term) {
     if (!mattersOverviewData) return;
-    const lower = term.toLowerCase();
+
+    // If no term provided (e.g. from checkbox), use current search value
+    if (term === undefined) {
+        term = document.getElementById('overview-search').value;
+    }
+
+    const lower = (term || "").toLowerCase();
     const filtered = mattersOverviewData.by_matter.filter(m =>
         m.name.toLowerCase().includes(lower) ||
         (m.external_id && m.external_id.toLowerCase().includes(lower)) ||

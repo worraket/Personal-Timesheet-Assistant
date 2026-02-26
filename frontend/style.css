@@ -1356,4 +1356,20 @@ body {
 .add-sticky-btn:hover {
     filter: brightness(0.95);
     box-shadow: var(--shadow);
+
+}
+
+.matter-closed {
+    opacity: 0.6;
+    font-style: italic;
+}
+
+.active-toggle {
+    background-color: rgba(0, 113, 227, 0.1) !important;
+    border-color: var(--accent-color) !important;
+    color: var(--accent-color) !important;
+}
+
+#delete-matter-confirm-modal {
+    z-index: 1300;
 }
