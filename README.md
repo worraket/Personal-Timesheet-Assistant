@@ -30,6 +30,12 @@ A local web app for **lawyers and legal professionals** to track billable time a
 
 See the **[CHANGELOG.md](CHANGELOG.md)** for a complete history of updates.
 
+### What's New in v1.3.0
+- **Zero-Dependency Auto-Updater**: Instant, GitHub-connected automatic updates on boot via pure Python (no local Git required!).
+- **Matters Overview Features**: Dynamic sorting (ID & Flag Status) and a toggle to instantly show/hide closed matters.
+- **Fast JSON Data Seeding**: Pre-installed `51SCGLxx` matters now inject instantly on first launch via `seed_matters.json`.
+- **Permanent Deletion**: Added a secure confirmation flow to permanently purge closed matters from the database.
+
 ### What's New in v1.2.0
 - **Advanced Dashboard Theming**: New controls in settings to pinpoint exact colors for your Weekly Activity chart and set transparency levels exclusively for dashboard cards.
 - **Dedicated Storage**: Sticky notes now utilize their very own structured local cache (`stickynote.json`).

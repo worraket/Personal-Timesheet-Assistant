@@ -4,6 +4,16 @@ All notable changes to the **Personal Timesheet Assistant** will be documented i
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to Semantic Versioning.
 
+## [1.3.0] - 2026-02-26
+
+### Added
+- **Zero-Dependency Auto-Updater**: The application will automatically check GitHub for updates every time `run_assistant.bat` boots. It securely downloads and extracts the latest ZIP release without requiring a local Git installation.
+- **Matters Overview Features**: 
+  - Added a dropdown to dynamic sort active matters by ID or Flag status.
+  - Added a "Show Closed Matters" checkbox to toggle visibility of archived matters.
+- **Fast JSON Data Seeding**: Replaced the slow, AI-dependent CSV initialization script with a pre-computed JSON seed (`seed_matters.json`). 51SCGLxx matters are now created instantly on first launch.
+- **Permanent Deletion**: Added a secure confirmation flow (Trash Bin icon) specifically for Closed matters to permanently purge them and their time logs from the SQLite database.
+
 ## [1.2.0] - 2026-02-25
 
 ### Added
