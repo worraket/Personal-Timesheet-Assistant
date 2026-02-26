@@ -220,6 +220,26 @@
         </div>
     </div>
 
+    <!-- Delete Matter Confirm Modal -->
+    <div id="delete-matter-confirm-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="danger-text">Permanently Delete Matter</h2>
+                <span class="close-modal" id="close-delete-matter-modal">&times;</span>
+            </div>
+            <div class="reset-confirm-body">
+                <p class="warning-text"><strong>Warning:</strong> You are about to permanently delete <strong
+                        id="delete-matter-name-display"></strong> and all of its associated time logs.</p>
+                <p>Please type <strong>delete</strong> to confirm:</p>
+                <input type="hidden" id="delete-matter-id-input">
+                <input type="text" id="delete-matter-confirm-input" placeholder="type 'delete' here..."
+                    autocomplete="off" oninput="checkMatterDeleteConfirm(this.value)">
+                <button id="confirm-delete-matter-btn" class="btn confirm-reset-btn" disabled
+                    onclick="executeMatterDelete()">Confirm Delete</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Summary Modal -->
     <div id="summary-modal" class="modal">
         <div class="modal-content">
@@ -718,9 +738,22 @@
                 <h2>All Matters Overview</h2>
                 <span class="close-modal" id="close-matters-overview-modal">&times;</span>
             </div>
-            <div class="matters-overview-filters" style="margin-bottom: 20px; display: flex; gap: 12px;">
+            <div class="matters-overview-filters"
+                style="margin-bottom: 20px; display: flex; gap: 12px; align-items: center;">
                 <input type="text" id="overview-search" placeholder="Search by name, ID or client..."
                     style="flex: 1; padding: 12px 16px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--input-bg); font-family: inherit;">
+                <select id="overview-matter-sort"
+                    style="padding: 12px 16px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--input-bg); font-family: inherit;"
+                    onchange="filterMattersOverview()">
+                    <option value="id_asc">Sort: Matter Number (A-Z)</option>
+                    <option value="id_desc">Sort: Matter Number (Z-A)</option>
+                    <option value="status_rg">Sort: Status (Red &rarr; Green)</option>
+                    <option value="status_gr">Sort: Status (Green &rarr; Red)</option>
+                </select>
+                <label style="display: flex; align-items: center; gap: 8px; font-weight: 500; cursor: pointer;">
+                    <input type="checkbox" id="overview-show-closed" onchange="filterMattersOverview()">
+                    Show Closed
+                </label>
             </div>
             <div id="matters-overview-list" class="matters-overview-container">
                 <!-- Data populated by JS as a table -->

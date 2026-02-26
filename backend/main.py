@@ -12,6 +12,7 @@ from datetime import datetime
 from . import database
 from . import migrate_db
 from . import migrate_db_closed
+from . import migrate_db_company
 from . import backup_service
 
 from . import settings_service
@@ -45,6 +46,7 @@ def startup_event():
         settings_service.migrate_from_db(db)
         migrate_db.migrate()
         migrate_db_closed.add_is_closed_column()
+        migrate_db_company.migrate_company_column()
         settings_service.migrate_plaintext_keys()
     except Exception as e:
         print(f"Startup migration warning: {e}")
@@ -216,6 +218,7 @@ class MatterManualRequest(BaseModel):
     name: str
     external_id: Optional[str] = None
     description: Optional[str] = None
+    company_name: Optional[str] = None
     client_name: Optional[str] = None
     client_email: Optional[str] = None
     status_flag: str = "yellow"
@@ -225,6 +228,7 @@ class MatterUpdateRequest(BaseModel):
     name: Optional[str] = None
     external_id: Optional[str] = None
     description: Optional[str] = None
+    company_name: Optional[str] = None
     client_name: Optional[str] = None
     client_email: Optional[str] = None
     status_flag: Optional[str] = None
@@ -241,6 +245,7 @@ def add_matter_manual(request: MatterManualRequest, db: Session = Depends(databa
         name=request.name,
         external_id=request.external_id,
         description=request.description,
+        company_name=request.company_name,
         client_name=request.client_name,
         client_email=request.client_email,
         status_flag=request.status_flag,
@@ -263,6 +268,8 @@ def update_matter(matter_id: int, request: MatterUpdateRequest, db: Session = De
         matter.external_id = request.external_id
     if request.description is not None:
         matter.description = request.description
+    if request.company_name is not None:
+        matter.company_name = request.company_name
     if request.client_name is not None:
         matter.client_name = request.client_name
     if request.client_email is not None:
@@ -275,6 +282,17 @@ def update_matter(matter_id: int, request: MatterUpdateRequest, db: Session = De
     db.commit()
     db.refresh(matter)
     return {"message": "Matter updated successfully", "matter": matter}
+
+@app.delete("/api/matters/{matter_id}")
+def delete_matter(matter_id: int, db: Session = Depends(database.get_db)):
+    matter = db.query(database.Matter).filter(database.Matter.id == matter_id).first()
+    if not matter:
+        raise HTTPException(status_code=404, detail="Matter not found")
+        
+    db.query(database.TimeLog).filter(database.TimeLog.matter_id == matter_id).delete()
+    db.delete(matter)
+    db.commit()
+    return {"message": "Matter permanently deleted"}
 
 @app.get("/api/dashboard")
 def get_dashboard(db: Session = Depends(database.get_db)):

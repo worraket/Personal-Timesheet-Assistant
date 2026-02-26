@@ -34,6 +34,7 @@ EXPECTED_SCHEMA = {
         {"name": "name",            "type": "VARCHAR", "notnull": False, "default": None},
         {"name": "external_id",     "type": "VARCHAR", "notnull": False, "default": None},
         {"name": "description",     "type": "TEXT",    "notnull": False, "default": None},
+        {"name": "company_name",    "type": "VARCHAR", "notnull": False, "default": None},
         {"name": "client_name",     "type": "TEXT",    "notnull": False, "default": None},
         {"name": "client_email",    "type": "TEXT",    "notnull": False, "default": None},
         {"name": "status_flag",     "type": "TEXT",    "notnull": False, "default": "'yellow'"},
@@ -107,6 +108,13 @@ MIGRATIONS = [
             key VARCHAR UNIQUE,
             value VARCHAR
         )""",
+    },
+    {
+        "id": "007",
+        "description": "Add company_name column to matters",
+        "table": "matters",
+        "column": "company_name",
+        "sql": "ALTER TABLE matters ADD COLUMN company_name VARCHAR",
     },
 ]
 

@@ -16,6 +16,7 @@ class Matter(Base):
     name = Column(String, index=True) # e.g., "Client X - Acquisition"
     external_id = Column(String, index=True, nullable=True) # e.g., "1234"
     description = Column(Text, nullable=True) # e.g., "Email subject: RE: Acquisition of Y"
+    company_name = Column(String, index=True, nullable=True)
     client_name = Column(String, nullable=True)
     client_email = Column(String, nullable=True)
     status_flag = Column(String, default="yellow") # yellow (pending), green (completed), red (urgent)

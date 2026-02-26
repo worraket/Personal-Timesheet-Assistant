@@ -131,7 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Close on click outside
     window.onclick = (event) => {
-        const modals = [settingsModal, summaryModal, resetModal, addMatterModal, detailsModal, missingDurationModal, ambiguousMatterModal, editLogModal, mattersOverviewModal, document.getElementById('add-sticky-modal')];
+        const modals = [settingsModal, summaryModal, resetModal, addMatterModal, detailsModal, missingDurationModal, ambiguousMatterModal, editLogModal, mattersOverviewModal, document.getElementById('add-sticky-modal'), document.getElementById('delete-matter-confirm-modal')];
         modals.forEach(modal => {
             if (event.target == modal) modal.style.display = 'none';
         });
@@ -529,6 +529,23 @@ function renderMatters(matters) {
         div.appendChild(infoDiv);
         div.appendChild(pinBtn);
         div.appendChild(editBtn);
+
+        // Permanent Delete button (only for closed matters)
+        if (m.is_closed) {
+            const delBtn = document.createElement('button');
+            delBtn.innerHTML = '&#128465;'; // Trash bin icon
+            delBtn.className = 'icon-btn';
+            delBtn.title = 'Permanently Delete';
+            delBtn.style.background = 'transparent';
+            delBtn.style.border = 'none';
+            delBtn.style.cursor = 'pointer';
+            delBtn.style.padding = '8px';
+            delBtn.style.color = 'var(--danger-color)';
+            delBtn.style.fontSize = '1.2em';
+            delBtn.onclick = (e) => { e.stopPropagation(); promptDeleteMatter(m.id, m.name); };
+            div.appendChild(delBtn);
+        }
+
         return div;
     }
 
@@ -941,17 +958,32 @@ function renderMattersOverview(matters) {
 
     const tbody = table.querySelector('tbody');
 
-    // Sort by last_logged_at (most recent first), then by name for matters with no logs
-    const sortByRecency = (a, b) => {
-        if (a.last_logged_at && b.last_logged_at) return b.last_logged_at.localeCompare(a.last_logged_at);
-        if (a.last_logged_at) return -1;
-        if (b.last_logged_at) return 1;
-        return a.name.localeCompare(b.name);
+    // Read sorting choice
+    const sortVal = document.getElementById('overview-matter-sort').value;
+
+    const sortModifiers = {
+        'id_asc': (a, b) => (a.external_id || '').localeCompare(b.external_id || ''),
+        'id_desc': (a, b) => (b.external_id || '').localeCompare(a.external_id || ''),
+        'status_rg': (a, b) => {
+            const weight = { 'red': 1, 'yellow': 2, 'green': 3 };
+            return (weight[a.status_flag] || 2) - (weight[b.status_flag] || 2);
+        },
+        'status_gr': (a, b) => {
+            const weight = { 'red': 3, 'yellow': 2, 'green': 1 };
+            return (weight[a.status_flag] || 2) - (weight[b.status_flag] || 2);
+        }
     };
 
-    // Grouping: open first, then closed
-    const open = matters.filter(m => !m.is_closed).sort(sortByRecency);
-    const closed = matters.filter(m => m.is_closed).sort(sortByRecency);
+    // Filter "Show Closed"
+    const showClosed = document.getElementById('overview-show-closed').checked;
+
+    // Grouping
+    const open = matters.filter(m => !m.is_closed).sort(sortModifiers[sortVal]);
+    let closed = matters.filter(m => m.is_closed).sort((a, b) => (a.external_id || '').localeCompare(b.external_id || ''));
+
+    if (!showClosed) {
+        closed = [];
+    }
 
     [...open, ...closed].forEach(m => {
         const row = document.createElement('tr');
@@ -964,10 +996,15 @@ function renderMattersOverview(matters) {
         const statusDot = `<span class="overview-status-dot status-${m.status_flag || 'yellow'}"></span>`;
         const lastLogged = m.last_logged_at ? m.last_logged_at.slice(0, 16).replace('T', ' ') : '-';
 
+        let trashIconHtml = '';
+        if (m.is_closed) {
+            trashIconHtml = `<button onclick="event.stopPropagation(); promptDeleteMatter(${m.id}, '${escapeHtml(m.name).replace(/'/g, "\\'")}')" class="icon-btn" title="Permanently Delete" style="background: none; border: none; cursor: pointer; color: var(--danger-color); padding: 4px; margin-left: 8px;">&#128465;</button>`;
+        }
+
         row.innerHTML = `
             <td>${statusDot} ${m.is_closed ? '(Closed)' : ''}</td>
             <td class="overview-id">${escapeHtml(m.external_id) || '-'}</td>
-            <td><strong>${escapeHtml(m.name)}</strong></td>
+            <td><strong>${escapeHtml(m.name)}</strong> ${trashIconHtml}</td>
             <td>${escapeHtml(m.client_name) || '-'}</td>
             <td class="overview-totals">${m.total_units} units <span>(${m.total_minutes}m)</span></td>
             <td class="overview-last-logged">${lastLogged}</td>
@@ -1034,6 +1071,69 @@ async function confirmReset() {
     } finally {
         btn.innerText = originalText;
         btn.disabled = false;
+    }
+}
+
+function checkResetConfirm(val) {
+    document.getElementById('confirm-reset-btn').disabled = (val !== 'delete');
+}
+
+// Matter Deletion Logic
+function promptDeleteMatter(id, name) {
+    const modal = document.getElementById('delete-matter-confirm-modal');
+    document.getElementById('delete-matter-name-display').innerText = name;
+    document.getElementById('delete-matter-id-input').value = id;
+    document.getElementById('delete-matter-confirm-input').value = '';
+    document.getElementById('confirm-delete-matter-btn').disabled = true;
+
+    // Add event listener to close modal on 'x' click
+    document.getElementById('close-delete-matter-modal').addEventListener('click', () => {
+        modal.style.display = 'none';
+    }, { once: true });
+
+    modal.style.display = 'block';
+}
+
+function checkMatterDeleteConfirm(val) {
+    document.getElementById('confirm-delete-matter-btn').disabled = (val !== 'delete');
+}
+
+async function executeMatterDelete() {
+    const id = document.getElementById('delete-matter-id-input').value;
+    const btn = document.getElementById('confirm-delete-matter-btn');
+
+    btn.disabled = true;
+    btn.innerText = 'Deleting...';
+
+    try {
+        const response = await fetch(`${API_BASE}/matters/${id}`, { method: 'DELETE' });
+
+        if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.detail || 'Failed to delete matter');
+        }
+
+        // Close modal and refresh UI
+        document.getElementById('delete-matter-confirm-modal').style.display = 'none';
+
+        // Only refresh overview if it was open
+        if (document.getElementById('matters-overview-modal').style.display === 'block') {
+            showMattersOverview();
+        }
+
+        document.getElementById('matter-search').value = ''; // clear search filter
+        await loadMatters();
+
+        // If the detail modal is open for *this* matter, close it
+        const detailsModal = document.getElementById('matter-details-modal');
+        if (detailsModal.style.display === 'block' && currentDetailMatterId == id) {
+            detailsModal.style.display = 'none';
+        }
+
+    } catch (error) {
+        alert('Error: ' + error.message);
+    } finally {
+        btn.innerText = 'Confirm Delete';
     }
 }
 
