@@ -4,6 +4,28 @@ All notable changes to the **Personal Timesheet Assistant** will be documented i
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to Semantic Versioning.
 
+## [1.4.0] - 2026-02-26
+
+### Added
+- **Chat Bubble Customization**: Added dedicated color pickers in Settings to customize background colors for both **User** and **AI/System** chat bubbles. Includes live preview so you can see changes instantly as you adjust them.
+
+## [1.3.2] - 2026-02-26
+
+### Added
+- **Dashboard Daily Records**: Clicking any bar in the "Weekly Activity" chart now opens a detailed modal showing every time record for that specific day (Matter, Duration, Units, and Description).
+- **Premium Sidebar Toggles**: Refined the "Show Closed Matters" button with SVG icons and a more distinct active state.
+- **Improved Visibility Logic**: Ensured matters with zero time logs are still included and searchable in the "All Matters Overview" modal.
+
+### Fixed
+- Fixed a bug where the sidebar search filter was lost when toggling matter visibility.
+
+## [1.3.1] - 2026-02-26
+
+### Fixed
+- **Modal Layering**: Fixed a z-index issue where the "Delete Matter" confirmation window appeared *behind* the "All Matters Overview" window.
+- **Javascript Crash**: Resolved a crash in the overview filter logic when searching with no text input.
+- **Sidebar Styling**: Added missing CSS classes for `.matter-closed` to ensure archived matters are visually distinct (faded/italic).
+
 ## [1.3.0] - 2026-02-26
 
 ### Added

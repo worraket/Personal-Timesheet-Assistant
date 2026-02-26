@@ -30,11 +30,14 @@ A local web app for **lawyers and legal professionals** to track billable time a
 
 See the **[CHANGELOG.md](CHANGELOG.md)** for a complete history of updates.
 
-### What's New in v1.3.0
+### What's New in v1.4.0
+- **Chat Bubble Customization**: Added deep customization for chat bubbles. You can now pick exact hex colors for both User and AI messages in the Settings modal with real-time live preview.
+
+### What's New in v1.3.x
+- **Dashboard: Daily Records**: An interactive "Weekly Activity" chart. Click any bar to instantly see the full list of time entries for that day.
+- **Premium UI Overhaul**: Fixed the sidebar visibility toggles with new icons and improved the visual distinction of archived (closed) matters.
 - **Zero-Dependency Auto-Updater**: Instant, GitHub-connected automatic updates on boot via pure Python (no local Git required!).
-- **Matters Overview Features**: Dynamic sorting (ID & Flag Status) and a toggle to instantly show/hide closed matters.
-- **Fast JSON Data Seeding**: Pre-installed `51SCGLxx` matters now inject instantly on first launch via `seed_matters.json`.
-- **Permanent Deletion**: Added a secure confirmation flow to permanently purge closed matters from the database.
+- **Matter Management Fixes**: Improved sorting, z-index layering for modals, and included log-less matters in the overview summary.
 
 ### What's New in v1.2.0
 - **Advanced Dashboard Theming**: New controls in settings to pinpoint exact colors for your Weekly Activity chart and set transparency levels exclusively for dashboard cards.

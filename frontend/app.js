@@ -267,6 +267,10 @@ async function showSettings() {
         document.getElementById('theme-summary-btn').value = settings.ui_btn_summary_color || '#ffffff';
         document.getElementById('theme-closed-btn').value = settings.ui_btn_closed_color || '#ffffff';
 
+        // Chat bubble colors
+        document.getElementById('theme-user-bubble').value = settings.ui_chat_user_bg || '#007AFF';
+        document.getElementById('theme-bot-bubble').value = settings.ui_chat_bot_bg || '#f1f1f4';
+
         // Setup live preview listeners
         setupThemeListeners();
     } catch (error) {
@@ -297,6 +301,8 @@ async function saveSettings() {
         ui_btn_reset_color: document.getElementById('theme-reset-btn').value,
         ui_btn_summary_color: document.getElementById('theme-summary-btn').value,
         ui_btn_closed_color: document.getElementById('theme-closed-btn').value,
+        ui_chat_user_bg: document.getElementById('theme-user-bubble').value,
+        ui_chat_bot_bg: document.getElementById('theme-bot-bubble').value,
         ai_enabled: document.getElementById('ai-enabled-toggle').value === 'true',
         ai_provider: document.getElementById('ai-provider').value,
         ai_key_claude: document.getElementById('ai-key-claude').value,
@@ -1354,6 +1360,8 @@ function applyTheme(settings) {
     if (settings.ui_btn_reset_color) root.style.setProperty('--reset-btn-bg', settings.ui_btn_reset_color);
     if (settings.ui_btn_summary_color) root.style.setProperty('--summary-btn-bg', settings.ui_btn_summary_color);
     if (settings.ui_btn_closed_color) root.style.setProperty('--closed-btn-bg', settings.ui_btn_closed_color);
+    if (settings.ui_chat_user_bg) root.style.setProperty('--message-user-bg', settings.ui_chat_user_bg);
+    if (settings.ui_chat_bot_bg) root.style.setProperty('--message-bot-bg', settings.ui_chat_bot_bg);
     if (settings.ui_panel_opacity !== undefined) {
         root.style.setProperty('--panel-opacity', settings.ui_panel_opacity);
         root.style.setProperty('--panel-blur', (settings.ui_panel_opacity * 30) + 'px');
@@ -1426,6 +1434,13 @@ function setupThemeListeners() {
     });
     document.getElementById('theme-closed-btn').addEventListener('input', (e) => {
         root.style.setProperty('--closed-btn-bg', e.target.value);
+    });
+
+    document.getElementById('theme-user-bubble').addEventListener('input', (e) => {
+        root.style.setProperty('--message-user-bg', e.target.value);
+    });
+    document.getElementById('theme-bot-bubble').addEventListener('input', (e) => {
+        root.style.setProperty('--message-bot-bg', e.target.value);
     });
 
     document.getElementById('theme-panel-opacity').addEventListener('input', (e) => {
