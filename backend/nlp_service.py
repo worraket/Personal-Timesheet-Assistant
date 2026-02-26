@@ -182,3 +182,37 @@ def extract_date(text):
             pass
 
     return None
+
+def clean_description(text, matter_name=None):
+    """
+    Cleans up a raw time log text to be used as a description.
+    Strips 'Worked on [Matter Name]', duration text, and leading/trailing punctuation.
+    """
+    clean_desc = text
+    
+    # 1. Strip "Worked on [Matter Name]" prefix
+    if matter_name:
+        prefix = f"Worked on {matter_name}"
+        if clean_desc.lower().startswith(prefix.lower()):
+            clean_desc = clean_desc[len(prefix):].strip()
+
+    # 2. Strip duration text using regex variations
+    # This removes things like "for 1.5 hours", "1.5h", "30 mins", etc.
+    # Optional leading "for", optional leading commas/hyphens, duration number, optional space, unit
+    duration_pattern = r'(?:\bfor\b\s*)?(\d+(\.\d+)?)\s*(h|hr|hrs|hour|hours|m|min|mins|minute|minutes)\b'
+    
+    # Replace the duration phrase with an empty string
+    clean_desc = re.sub(duration_pattern, '', clean_desc, flags=re.IGNORECASE)
+
+    # 3. Clean up loose/dangling punctuation that might be left behind or was typed by the user
+    # E.g. ".., Update backend" -> "Update backend"
+    # Remove leading non-alphanumeric chars (keep some exceptions like quotes/brackets if needed, but safer to strip common symbols)
+    clean_desc = re.sub(r'^[\s,\.\-]+', '', clean_desc)
+    
+    # Remove trailing non-alphanumeric chars
+    clean_desc = re.sub(r'[\s,\.\-]+$', '', clean_desc)
+    
+    # Clean up double spaces that might result from stripping text from the middle
+    clean_desc = re.sub(r'\s{2,}', ' ', clean_desc)
+    
+    return clean_desc.strip()

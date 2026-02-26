@@ -460,14 +460,8 @@ def log_time(request: LogRequest, db: Session = Depends(database.get_db)):
              log_date = datetime.now()
              
         units = time_service.calculate_units(duration)
-        # Strip "Worked on [Matter Name]" prefix
-        clean_desc = text
-        prefix = f"Worked on {matched_matter.name}"
-        if clean_desc.lower().startswith(prefix.lower()):
-             clean_desc = clean_desc[len(prefix):].strip()
-             # Remove leading punctuation (comma, hyphen, etc.)
-             clean_desc = re.sub(r'^[\s,\.-]+', '', clean_desc).strip()
-
+        # Strip "Worked on [Matter Name]" prefix, duration, and punctuation
+        clean_desc = nlp_service.clean_description(text, matched_matter.name)
         new_log = database.TimeLog(
             matter_id=matched_matter.id,
             duration_minutes=duration,
@@ -565,14 +559,8 @@ def log_time(request: LogRequest, db: Session = Depends(database.get_db)):
     # 3. Create TimeLog
     units = time_service.calculate_units(duration)
     
-    # Strip "Worked on [Matter Name]" prefix
-    clean_desc = text
-    prefix = f"Worked on {matched_matter.name}"
-    if clean_desc.lower().startswith(prefix.lower()):
-            clean_desc = clean_desc[len(prefix):].strip()
-            # Remove leading punctuation (comma, hyphen, etc.)
-            clean_desc = re.sub(r'^[\s,\.-]+', '', clean_desc).strip()
-
+    # Strip "Worked on [Matter Name]" prefix, duration, and punctuation
+    clean_desc = nlp_service.clean_description(text, matched_matter.name)
     new_log = database.TimeLog(
         matter_id=matched_matter.id,
         duration_minutes=duration,

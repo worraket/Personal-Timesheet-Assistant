@@ -11,3 +11,5 @@ pydantic-settings
 anthropic
 google-generativeai
 openai
+pytest
+pytest-asyncio
