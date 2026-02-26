@@ -214,6 +214,38 @@ def get_matters(db: Session = Depends(database.get_db)):
     matters = db.query(database.Matter).all()
     return matters
 
+@app.get("/api/logs/daily")
+def get_daily_logs(date: str, db: Session = Depends(database.get_db)):
+    """Fetch all logs for a specific YYYY-MM-DD date."""
+    try:
+        from datetime import datetime, time
+        # Parse the date string
+        target_date = datetime.strptime(date, "%Y-%m-%d").date()
+        start_time = datetime.combine(target_date, time.min)
+        end_time = datetime.combine(target_date, time.max)
+
+        logs = db.query(database.TimeLog).filter(
+            database.TimeLog.log_date >= start_time,
+            database.TimeLog.log_date <= end_time
+        ).all()
+
+        results = []
+        for l in logs:
+            results.append({
+                "id": l.id,
+                "matter_id": l.matter_id,
+                "matter_name": l.matter.name if l.matter else "Unknown Matter",
+                "matter_external_id": l.matter.external_id if l.matter else None,
+                "duration_minutes": l.duration_minutes,
+                "units": l.units,
+                "description": l.description,
+                "log_date": l.log_date.strftime("%Y-%m-%d %H:%M")
+            })
+        
+        return results
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 class MatterManualRequest(BaseModel):
     name: str
     external_id: Optional[str] = None
@@ -768,8 +800,6 @@ def get_summary(db: Session = Depends(database.get_db)):
     
     for m in matters:
         matter_logs = [l for l in logs if l.matter_id == m.id]
-        if not matter_logs:
-            continue
             
         matter_summary[m.id] = {
             "id": m.id,
@@ -780,7 +810,7 @@ def get_summary(db: Session = Depends(database.get_db)):
             "is_closed": getattr(m, 'is_closed', False),
             "total_minutes": sum(l.duration_minutes for l in matter_logs),
             "total_units": sum(l.units for l in matter_logs),
-            "last_logged_at": max(l.created_at for l in matter_logs).strftime("%Y-%m-%d %H:%M:%S"),
+            "last_logged_at": max(l.created_at for l in matter_logs).strftime("%Y-%m-%d %H:%M:%S") if matter_logs else None,
             "records": [
                 {
                     "id": l.id,
@@ -793,8 +823,12 @@ def get_summary(db: Session = Depends(database.get_db)):
             ]
         }
 
+    # Sort results: matters with logs first (by last_logged_at), then others
+    def sort_key(m):
+        return (m["last_logged_at"] is not None, m["last_logged_at"])
+
     return {
-        "by_matter": sorted(matter_summary.values(), key=lambda m: m["last_logged_at"], reverse=True),
+        "by_matter": sorted(matter_summary.values(), key=sort_key, reverse=True),
         "reports": {
             "today": {
                 "minutes": sum(l.duration_minutes for l in daily_logs),

@@ -93,6 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const firstRunModal = document.getElementById('first-run-modal');
     const editLogModal = document.getElementById('edit-log-modal');
     const mattersOverviewModal = document.getElementById('matters-overview-modal');
+    const dailyLogsModal = document.getElementById('daily-logs-modal');
 
     // Triggers
     document.querySelector('.settings-trigger').onclick = showSettings; // Kept original showSettings for functionality
@@ -108,10 +109,13 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: 'close-settings-modal', modal: settingsModal },
         { id: 'close-reset-modal', modal: resetModal },
         { id: 'close-add-matter-modal', modal: addMatterModal },
+        { id: 'close-matter-details-modal', modal: detailsModal },
         { id: 'close-missing-duration-modal', modal: missingDurationModal },
-        { id: 'close-ambiguous-modal', modal: ambiguousMatterModal },
+        { id: 'close-ambiguous-matter-modal', modal: ambiguousMatterModal },
+        { id: 'close-first-run-modal', modal: firstRunModal },
         { id: 'close-edit-log-modal', modal: editLogModal },
         { id: 'close-matters-overview-modal', modal: mattersOverviewModal },
+        { id: 'close-daily-logs-modal', modal: dailyLogsModal },
         { id: 'close-sticky-modal', modal: document.getElementById('add-sticky-modal') }
     ];
 
@@ -467,7 +471,9 @@ function renderMatters(matters) {
 
     function buildItem(m, isPinned) {
         const div = document.createElement('div');
-        div.className = 'matter-item' + (isPinned ? ' matter-pinned' : '');
+        div.className = 'matter-item' +
+            (isPinned ? ' matter-pinned' : '') +
+            (m.is_closed ? ' matter-closed' : '');
         div.style.display = 'flex';
         div.style.justifyContent = 'space-between';
         div.style.alignItems = 'center';
@@ -566,6 +572,17 @@ function renderMatters(matters) {
 
     // Render normal matters
     normal.forEach(m => list.appendChild(buildItem(m, false)));
+
+    // Re-apply search filter if there's a current term
+    const searchInput = document.getElementById('matter-search-input');
+    if (searchInput && searchInput.value) {
+        const term = searchInput.value.toLowerCase();
+        const items = list.querySelectorAll('.matter-item');
+        items.forEach(item => {
+            const searchData = item.dataset.searchData || item.innerText.toLowerCase();
+            item.style.display = searchData.includes(term) ? 'flex' : 'none';
+        });
+    }
 }
 
 
@@ -1606,14 +1623,22 @@ function toggleClosedMattersVisibility() {
     const btn = document.getElementById('toggle-closed-btn');
     if (btn) {
         if (showClosedMatters) {
-            btn.innerHTML = '&#128065; Hide Closed Matters';
+            btn.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                </svg> Hide Closed Matters`;
             btn.classList.add('active-toggle');
         } else {
-            btn.innerHTML = '&#128065; Show All Matters';
+            btn.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                </svg> Show All Matters`;
             btn.classList.remove('active-toggle');
         }
     }
-    loadMatters();
+    renderMatters(allMatters);
 }
 
 async function saveMatterDetails() {
@@ -1909,6 +1934,10 @@ function renderWeeklyChart(stats) {
         const nameLabel = document.createElement('div');
         nameLabel.className = 'chart-bar-label';
         nameLabel.textContent = day.day;
+
+        container.title = `Click to view ${day.minutes}m logged on ${day.date}`;
+        container.onclick = () => showDailyLogs(day.date);
+
         container.appendChild(valueLabel);
         container.appendChild(bar);
         container.appendChild(nameLabel);
@@ -2089,3 +2118,50 @@ if (document.readyState === 'loading') {
     loadDashboard();
 }
 
+async function showDailyLogs(date) {
+    const modal = document.getElementById('daily-logs-modal');
+    const container = document.getElementById('daily-logs-container');
+    const dateSubtitle = document.getElementById('daily-logs-date-subtitle');
+
+    dateSubtitle.textContent = new Date(date).toLocaleDateString(undefined, {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+    container.innerHTML = '<div class="loading-state">Loading records...</div>';
+    modal.style.display = 'block';
+
+    try {
+        const res = await fetch(`${API_BASE}/logs/daily?date=${date}`);
+        if (!res.ok) throw new Error('Failed to load daily logs');
+        const logs = await res.json();
+
+        if (logs.length === 0) {
+            container.innerHTML = '<div class="empty-state">No records found for this day.</div>';
+            return;
+        }
+
+        container.innerHTML = '';
+        logs.forEach(log => {
+            const item = document.createElement('div');
+            item.className = 'daily-log-item';
+
+            const matterName = log.matter_name;
+            const extId = log.matter_external_id ? ` [${log.matter_external_id}]` : '';
+
+            item.innerHTML = `
+                <div class="daily-log-matter">${escapeHtml(matterName)}${escapeHtml(extId)}</div>
+                <div class="daily-log-desc">${escapeHtml(log.description || 'No description')}</div>
+                <div class="daily-log-meta">
+                    <span><strong>Duration:</strong> ${log.duration_minutes}m</span>
+                    <span><strong>Units:</strong> ${log.units}</span>
+                    <span><strong>Time:</strong> ${log.log_date.split(' ')[1]}</span>
+                </div>
+            `;
+            container.appendChild(item);
+        });
+    } catch (error) {
+        container.innerHTML = `<div class="error-state">Error: ${error.message}</div>`;
+    }
+}

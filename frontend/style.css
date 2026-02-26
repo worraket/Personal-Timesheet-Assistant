@@ -1373,3 +1373,51 @@ body {
 #delete-matter-confirm-modal {
     z-index: 1300;
 }
+
+/* Daily Log Detail Styles */
+.daily-log-item {
+    background: var(--matters-btn-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    transition: all 0.2s ease;
+}
+
+.daily-log-item:hover {
+    box-shadow: var(--shadow);
+    border-color: var(--accent-color);
+}
+
+.daily-log-matter {
+    font-weight: 600;
+    color: var(--accent-color);
+    margin-bottom: 4px;
+}
+
+.daily-log-desc {
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    margin: 8px 0;
+}
+
+.daily-log-meta {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    display: flex;
+    gap: 12px;
+}
+
+.chart-bar-container {
+    cursor: pointer !important;
+}
+
+.chart-bar-container:hover .chart-bar {
+    filter: brightness(1.1);
+    box-shadow: 0 0 10px rgba(0, 113, 227, 0.3);
+}
+
+.chart-bar-container:hover .chart-bar-label {
+    color: var(--accent-color);
+    font-weight: 600;
+}
