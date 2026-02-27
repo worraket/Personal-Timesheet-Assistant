@@ -3,7 +3,7 @@ import win32com.client
 import pythoncom
 from datetime import datetime, timedelta
 
-def get_outlook_matters(identifiers, limit=50, scan_depth=200):
+def get_outlook_matters(identifiers, limit=50, scan_depth=500):
     try:
         # Initialize COM library for the thread
         pythoncom.CoInitialize()
@@ -11,16 +11,26 @@ def get_outlook_matters(identifiers, limit=50, scan_depth=200):
         outlook = win32com.client.Dispatch("Outlook.Application").GetNamespace("MAPI")
         inbox = outlook.GetDefaultFolder(6) # 6 = Inbox
         messages = inbox.Items
-        messages.Sort("[ReceivedTime]", True) # Sort by received time descending
+        
+        # ── Optimization: Only scan recent emails with a matching subject ─────
+        # Filter for the last 30 days and the subject prefix
+        lookback_days = 30
+        cutoff_date = (datetime.now() - timedelta(days=lookback_days)).strftime("%m/%d/%Y %H:%M %p")
+        
+        # DASL filter for substring match in Subject AND ReceivedTime
+        # Using Jet syntax for simple date and DASL for SQL LIKE
+        filter_str = f"@SQL=\"urn:schemas:httpmail:subject\" LIKE '%Request Form ID:%' " \
+                     f"AND \"urn:schemas:httpmail:datereceived\" >= '{cutoff_date}'"
+        
+        print(f"DEBUG: Applying Filter: {filter_str}")
+        restricted_messages = messages.Restrict(filter_str)
+        restricted_messages.Sort("[ReceivedTime]", True) # Sort filtered results by received time descending
         
         extracted_matters = []
-        
-        # Simple extraction logic: Subject line is the potential matter
-        # In a real scenario, we might look for specific patterns like "MAT-1234"
-        
         count = 0
         messages_scanned = 0
-        for message in messages:
+        
+        for message in restricted_messages:
             if messages_scanned >= scan_depth:
                 break
             messages_scanned += 1
@@ -29,22 +39,15 @@ def get_outlook_matters(identifiers, limit=50, scan_depth=200):
                 break
                 
             try:
+                # Even though we filtered by Subject, we still need to extract parts
                 subject = message.Subject
-                
-                # 1. Subject Filter
-                # Pattern: "RE: Request Form ID: [anything] SCG Legal Client Portal"
-                # Using regex for flexibility
                 if not subject:
                     continue
                 
                 subject = subject.strip()
                 
-                # DEBUG
-                # print(f"DEBUG: Checking subject: {subject}")
-                    
                 # Pattern: RE: Request Form ID: [ID] SCG Legal Client Portal ([Matter Name])
                 # Example: RE: Request Form ID: 1440 SCG Legal Client Portal (Stark Energy - Solar EPC Contract...)
-                
                 subject_pattern = r"RE:\s*Request Form ID:\s*(\d+)\s*SCG Legal Client Portal\s*\((.*?)\)"
                 match = re.search(subject_pattern, subject, re.IGNORECASE)
                 
@@ -55,8 +58,7 @@ def get_outlook_matters(identifiers, limit=50, scan_depth=200):
                 matter_id = match.group(1).strip()
                 matter_name = match.group(2).strip()
                 
-                print(f"DEBUG: Subject MATCHED: {subject}")
-                print(f"DEBUG: Extracted ID: {matter_id}, Name: {matter_name}")
+                print(f"DEBUG: Subject matched and extracted: {matter_id} - {matter_name}")
 
                 # 2. Body Filter & Client Info Extraction
                 client_name = None
@@ -87,7 +89,7 @@ def get_outlook_matters(identifiers, limit=50, scan_depth=200):
                         if email_match:
                             client_email = email_match.group(1).strip()
 
-                        # Check duplication by External ID first, then Name
+                        # Check duplication in the current extracted list
                         # We only add to extracted_matters if it's NOT already there.
                         # The caller (main.py) will handle database checks.
                         if not any(m['external_id'] == matter_id for m in extracted_matters):
@@ -101,12 +103,14 @@ def get_outlook_matters(identifiers, limit=50, scan_depth=200):
                             })
                             count += 1
             except Exception as e:
-                # Some messages might be calendar invites or task requests which raise errors on some properties
+                # Skip items that might have locked properties or accessibility issues
                 continue
                 
+        print(f"DEBUG: Scan complete. Scanned {messages_scanned} items, found {count} potential matches.")
         return extracted_matters
     except Exception as e:
-        print(f"Error accessing Outlook: {e}")
+        print(f"Error accessing Outlook with Restrict: {e}")
+        # Fallback to simple unoptimized scan if Restrict fails for any reason
         return []
     finally:
         pythoncom.CoUninitialize()
