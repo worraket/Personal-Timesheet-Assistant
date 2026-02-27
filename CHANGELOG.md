@@ -4,6 +4,12 @@ All notable changes to the **Personal Timesheet Assistant** will be documented i
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to Semantic Versioning.
 
+## [1.4.1] - 2026-02-27
+
+### Changed
+- **Outlook Scan Optimization**: Rewrote the Outlook scanning logic to use `Items.Restrict` (DASL query). This shifts filtering to the Outlook side, drastically reducing the number of cross-process calls and improving "Scan Outlook" speed from several seconds to near-instant.
+- **Scan Lookback Period**: Adjusted the automatic scan window to the last 30 days to ensure a balance between performance and discovery range.
+
 ## [1.4.0] - 2026-02-26
 
 ### Added
