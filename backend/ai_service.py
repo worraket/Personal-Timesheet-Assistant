@@ -170,7 +170,7 @@ def generate_matter_tags(matter_id: int):
             if not ai_enabled or not api_key or ai_provider == "thefuzz":
                 return # AI not configured
                 
-            prompt = f\"\"\"You are a highly efficient legal search assistant. 
+            prompt = f"""You are a highly efficient legal search assistant. 
 Generate a comprehensive comma-separated list of highly relevant keywords, synonyms, alternative names, practice areas, and associated concepts that would help a user search for the following client matter.
 
 Matter Name: {matter.name}
@@ -184,7 +184,7 @@ Rules:
 
 Example output: 
 employment, litigation, dispute, HR, human resources, lawsuit, termination
-\"\"\"
+"""
             raw_response = ""
             if ai_provider == "claude":
                 raw_response = _call_claude(prompt, api_key)
