@@ -13,6 +13,7 @@ from . import database
 from . import migrate_db
 from . import migrate_db_closed
 from . import migrate_db_company
+from . import migrate_db_ai_tags
 from . import backup_service
 
 from . import settings_service
@@ -47,6 +48,7 @@ def startup_event():
         migrate_db.migrate()
         migrate_db_closed.add_is_closed_column()
         migrate_db_company.migrate_company_column()
+        migrate_db_ai_tags.add_ai_tags_column()
         settings_service.migrate_plaintext_keys()
     except Exception as e:
         print(f"Startup migration warning: {e}")
