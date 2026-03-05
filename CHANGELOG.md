@@ -4,6 +4,11 @@ All notable changes to the **Personal Timesheet Assistant** will be documented i
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to Semantic Versioning.
 
+## [1.4.2] - 2026-03-05
+
+### Fixed
+- **New Outlook Compatibility Warning**: Added explicit error detection for `pywin32` COM failures (`0x80080005`). If a user attempts to scan emails while using "New Outlook" (which deliberately blocks local COM automation), the application now safely catches the error and displays a clear UI alert instructing them to switch back to Classic Outlook.
+
 ## [1.4.1] - 2026-02-27
 
 ### Changed

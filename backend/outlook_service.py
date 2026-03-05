@@ -109,8 +109,18 @@ def get_outlook_matters(identifiers, limit=50, scan_depth=500):
         print(f"DEBUG: Scan complete. Scanned {messages_scanned} items, found {count} potential matches.")
         return extracted_matters
     except Exception as e:
-        print(f"Error accessing Outlook with Restrict: {e}")
-        # Fallback to simple unoptimized scan if Restrict fails for any reason
+        error_msg = str(e)
+        print(f"Error accessing Outlook with Restrict: {error_msg}")
+        
+        # Detect "New Outlook" COM failures (0x80080005 or 0x800401f3)
+        if "-2146959355" in error_msg or "Server execution failed" in error_msg or "-2147221005" in error_msg or "Invalid class string" in error_msg:
+            raise Exception(
+                "Cannot connect to Outlook.\n\n"
+                "If you are using 'New Outlook', please note that Microsoft does not support local scanning for it. "
+                "You must toggle the top-right switch back to 'Classic Outlook' and ensure it is running to use this feature."
+            )
+            
+        # Fallback to simple unoptimized scan if Restrict fails for any other reason
         return []
     finally:
         pythoncom.CoUninitialize()

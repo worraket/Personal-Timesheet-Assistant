@@ -600,6 +600,12 @@ async function scanOutlook() {
 
     try {
         const response = await fetch(`${API_BASE}/scan`, { method: 'POST' });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || `Server returned ${response.status}`);
+        }
+
         const data = await response.json();
 
         if (data.added_matters && data.added_matters.length > 0) {
