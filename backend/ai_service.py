@@ -1,5 +1,7 @@
 import json
 import re
+from . import settings_service
+from . import database
 
 
 def parse_log_entry_with_ai(text: str, matters_data: list, provider: str, api_key: str) -> dict:
@@ -146,3 +148,61 @@ def _parse_json_response(raw: str) -> dict:
         pass
 
     return {}
+
+
+def generate_matter_tags(matter_id: int):
+    """
+    Generate semantic AI tags for a specific matter and save them to the database.
+    This is intended to be run as a background task.
+    """
+    try:
+        db = database.SessionLocal()
+        try:
+            matter = db.query(database.Matter).filter(database.Matter.id == matter_id).first()
+            if not matter:
+                # Matter might have been deleted right after creation
+                return
+            
+            ai_enabled = settings_service.get_setting("ai_enabled", "false") == "true"
+            ai_provider = settings_service.get_setting("ai_provider", "thefuzz")
+            api_key = settings_service.get_setting(f"ai_key_{ai_provider}", "")
+            
+            if not ai_enabled or not api_key or ai_provider == "thefuzz":
+                return # AI not configured
+                
+            prompt = f\"\"\"You are a highly efficient legal search assistant. 
+Generate a comprehensive comma-separated list of highly relevant keywords, synonyms, alternative names, practice areas, and associated concepts that would help a user search for the following client matter.
+
+Matter Name: {matter.name}
+Client Name: {matter.client_name or 'Unknown'}
+Description/Context: {matter.description or 'No description provided'}
+
+Rules:
+1. Provide ONLY the comma-separated keywords. No introduction, no formatting, no bullet points.
+2. Include alternative spellings, broad categories, and specific concepts.
+3. Keep it under 20 keywords.
+
+Example output: 
+employment, litigation, dispute, HR, human resources, lawsuit, termination
+\"\"\"
+            raw_response = ""
+            if ai_provider == "claude":
+                raw_response = _call_claude(prompt, api_key)
+            elif ai_provider == "gemini":
+                raw_response = _call_gemini(prompt, api_key)
+            elif ai_provider == "openai":
+                raw_response = _call_openai(prompt, api_key)
+            elif ai_provider == "grok":
+                raw_response = _call_grok(prompt, api_key)
+
+            if raw_response:
+                clean_tags = raw_response.strip()
+                matter.ai_tags = clean_tags
+                db.commit()
+                print(f"Successfully generated AI tags for Matter {matter_id}: {clean_tags}")
+
+        finally:
+            db.close()
+            
+    except Exception as e:
+        print(f"Error generating AI tags in background task for matter {matter_id}: {e}")

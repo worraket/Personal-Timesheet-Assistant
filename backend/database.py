@@ -23,6 +23,7 @@ class Matter(Base):
     is_closed = Column(Boolean, default=False) # True if the matter is archived/closed
     source_email_id = Column(String, unique=True, index=True, nullable=True) # To prevent duplicate scans
     created_at = Column(DateTime, default=datetime.now)
+    ai_tags = Column(String, nullable=True) # Automatically generated semantic tags for search
 
     time_logs = relationship("TimeLog", back_populates="matter")
 

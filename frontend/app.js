@@ -489,7 +489,8 @@ function renderMatters(matters) {
             m.external_id || '',
             m.client_name || '',
             m.client_email || '',
-            m.description || ''
+            m.description || '',
+            m.ai_tags || ''
         ].join(' ').toLowerCase();
         div.dataset.searchData = searchTerms;
 

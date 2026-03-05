@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks
 from typing import Optional
 import re
 import csv
@@ -212,7 +212,25 @@ def reset_database(db: Session = Depends(database.get_db)):
 @app.get("/api/matters")
 def get_matters(db: Session = Depends(database.get_db)):
     matters = db.query(database.Matter).all()
-    return matters
+    
+    results = []
+    for m in matters:
+        matter_dict = {
+            "id": m.id,
+            "name": m.name,
+            "external_id": m.external_id,
+            "description": m.description,
+            "company_name": m.company_name,
+            "client_name": m.client_name,
+            "client_email": m.client_email,
+            "status_flag": m.status_flag,
+            "is_closed": m.is_closed,
+            "source_email_id": m.source_email_id,
+            "created_at": m.created_at,
+            "ai_tags": m.ai_tags
+        }
+        results.append(matter_dict)
+    return results
 
 @app.get("/api/logs/daily")
 def get_daily_logs(date: str, db: Session = Depends(database.get_db)):
@@ -267,7 +285,7 @@ class MatterUpdateRequest(BaseModel):
     is_closed: Optional[bool] = None
 
 @app.post("/api/matters/manual")
-def add_matter_manual(request: MatterManualRequest, db: Session = Depends(database.get_db)):
+def add_matter_manual(request: MatterManualRequest, background_tasks: BackgroundTasks, db: Session = Depends(database.get_db)):
     # Check if matter with same name exists
     existing = db.query(database.Matter).filter(database.Matter.name == request.name).first()
     if existing:
@@ -286,6 +304,7 @@ def add_matter_manual(request: MatterManualRequest, db: Session = Depends(databa
     db.add(new_matter)
     db.commit()
     db.refresh(new_matter)
+    background_tasks.add_task(ai_service.generate_matter_tags, new_matter.id)
     return {"message": "Matter added successfully", "matter": new_matter}
 
 @app.put("/api/matters/{matter_id}")
@@ -373,7 +392,7 @@ def trigger_update():
     return {"message": "Update initiated. Server is shutting down."}
 
 @app.post("/api/scan")
-def scan_outlook(db: Session = Depends(database.get_db)):
+def scan_outlook(background_tasks: BackgroundTasks, db: Session = Depends(database.get_db)):
     try:
         settings = settings_service.get_user_identifiers()
         found_matters = outlook_service.get_outlook_matters(settings, limit=50, scan_depth=2000)
@@ -404,6 +423,9 @@ def scan_outlook(db: Session = Depends(database.get_db)):
                     client_email=m.get('client_email')
                 )
                 db.add(new_matter)
+                db.commit()
+                db.refresh(new_matter)
+                background_tasks.add_task(ai_service.generate_matter_tags, new_matter.id)
                 added_matters.append(m['name'])
                 count += 1
             else:
