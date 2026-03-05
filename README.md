@@ -54,9 +54,10 @@ See the **[CHANGELOG.md](CHANGELOG.md)** for a complete history of updates.
 
 ## 🖥️ Requirements
 
-- **Windows 10 / 11** (Outlook scanner requires local Outlook via `pywin32`)
+- **Windows 10 / 11** (Outlook scanner requires local Windows COM APIs via `pywin32`)
 - **Python 3.9+** in your PATH
-- **Microsoft Outlook** (desktop app) — only needed for the Outlook scan feature
+- **Microsoft Outlook (Classic Desktop App)** — only needed for the Outlook scan feature.
+  > ⚠️ **IMPORTANT: "New Outlook" is NOT supported.** The "New Outlook" client is a web app wrapper that deliberately blocks local COM automation. To use the scanning feature, you must toggle the switch in the top-right corner of Outlook back to "Classic Outlook".
 
 ---
 
