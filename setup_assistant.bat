@@ -88,6 +88,14 @@ if %errorlevel% neq 0 (
     exit /b
 )
 
+echo 4. Importing Default Matters...
+python -c "from backend import database, import_global_matters; db = database.SessionLocal(); import_global_matters.import_global_matters(db); db.close()"
+if %errorlevel% neq 0 (
+    echo Error: Failed to import default matters.
+    pause
+    exit /b
+)
+
 echo.
 echo ----------------------------------------------
 echo   Setup Complete!
