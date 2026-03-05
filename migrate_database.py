@@ -41,6 +41,7 @@ EXPECTED_SCHEMA = {
         {"name": "is_closed",       "type": "BOOLEAN", "notnull": False, "default": "0"},
         {"name": "source_email_id", "type": "VARCHAR", "notnull": False, "default": None},
         {"name": "created_at",      "type": "DATETIME","notnull": False, "default": None},
+        {"name": "ai_tags",         "type": "TEXT",    "notnull": False, "default": None},
     ],
     "time_logs": [
         {"name": "id",               "type": "INTEGER", "notnull": True,  "default": None},
@@ -115,6 +116,13 @@ MIGRATIONS = [
         "table": "matters",
         "column": "company_name",
         "sql": "ALTER TABLE matters ADD COLUMN company_name VARCHAR",
+    },
+    {
+        "id": "008",
+        "description": "Add ai_tags column to matters for semantic search",
+        "table": "matters",
+        "column": "ai_tags",
+        "sql": "ALTER TABLE matters ADD COLUMN ai_tags TEXT",
     },
 ]
 
