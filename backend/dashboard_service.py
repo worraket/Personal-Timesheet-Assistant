@@ -87,6 +87,7 @@ def get_dynamic_reminders(db: Session):
         if m.status_flag == "yellow" and logs:
             latest_log_date = max(log.log_date for log in logs)
             if (now - latest_log_date).days > 3:
+                ext_id_str = f" [{m.external_id}]" if m.external_id else ""
                 note_id = f"dynamic_idle_{m.id}"
                 ov = overrides.get(note_id, {})
                 if isinstance(ov, str): ov = {"text": ov}
@@ -94,7 +95,7 @@ def get_dynamic_reminders(db: Session):
                 reminders.append({
                     "id": note_id,
                     "type": "idle",
-                    "title": ov.get("title", "Idle Matter"),
+                    "title": ov.get("title", f"Idle Matter{ext_id_str}"),
                     "text": ov.get("text", f"No time logged for {m.name} in over 3 days."),
                     "matter_id": m.id,
                     "color": ov.get("color", "yellow")
