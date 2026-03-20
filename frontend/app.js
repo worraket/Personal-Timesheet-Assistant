@@ -1568,6 +1568,7 @@ function openMatterDetails(matter) {
     document.getElementById('detail-client-name').value = matter.client_name || '';
     document.getElementById('detail-client-email').value = matter.client_email || '';
     document.getElementById('detail-description').value = matter.description || '';
+    document.getElementById('detail-ai-tags').value = matter.ai_tags || '';
     document.getElementById('detail-status').value = matter.status_flag || 'yellow';
 
     // Update Close/Re-open button state
@@ -1694,6 +1695,7 @@ async function saveMatterDetails() {
         client_name: document.getElementById('detail-client-name').value,
         client_email: document.getElementById('detail-client-email').value,
         description: document.getElementById('detail-description').value,
+        ai_tags: document.getElementById('detail-ai-tags').value,
         status_flag: document.getElementById('detail-status').value
     };
 

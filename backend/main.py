@@ -285,6 +285,7 @@ class MatterUpdateRequest(BaseModel):
     client_email: Optional[str] = None
     status_flag: Optional[str] = None
     is_closed: Optional[bool] = None
+    ai_tags: Optional[str] = None
 
 @app.post("/api/matters/manual")
 def add_matter_manual(request: MatterManualRequest, background_tasks: BackgroundTasks, db: Session = Depends(database.get_db)):
@@ -331,6 +332,8 @@ def update_matter(matter_id: int, request: MatterUpdateRequest, db: Session = De
         matter.status_flag = request.status_flag
     if request.is_closed is not None:
         matter.is_closed = request.is_closed
+    if request.ai_tags is not None:
+        matter.ai_tags = request.ai_tags
         
     db.commit()
     db.refresh(matter)
