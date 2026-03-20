@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('scan-btn').addEventListener('click', scanOutlook);
-    document.getElementById('export-btn').addEventListener('click', exportLogs);
+    document.getElementById('export-btn').addEventListener('click', openExportModal);
     document.getElementById('summary-btn').addEventListener('click', showSummary);
     document.querySelector('.settings-trigger').addEventListener('click', showSettings);
     document.getElementById('save-settings-btn').addEventListener('click', saveSettings);
@@ -411,8 +411,25 @@ async function removeBackground() {
     }
 }
 
-async function exportLogs() {
-    window.location.href = `${API_BASE}/export`;
+function openExportModal() {
+    document.getElementById('export-options-modal').style.display = 'flex';
+}
+
+function executeExport() {
+    const start = document.getElementById('export-start-date').value;
+    const end = document.getElementById('export-end-date').value;
+    
+    let url = `${API_BASE}/export`;
+    const params = new URLSearchParams();
+    if (start) params.append('start', start);
+    if (end) params.append('end', end);
+    
+    if (params.toString()) {
+        url += `?${params.toString()}`;
+    }
+    
+    window.location.href = url;
+    document.getElementById('export-options-modal').style.display = 'none';
 }
 
 async function loadMatters() {

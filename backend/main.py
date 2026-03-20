@@ -739,15 +739,38 @@ def update_log(log_id: int, request: LogUpdate, db: Session = Depends(database.g
 
 # Export Logic Update
 @app.head("/api/export")
-def export_logs_head():
+def export_logs_head(start: Optional[str] = None, end: Optional[str] = None):
     """Handle HEAD requests for the export endpoint (browser preflight before download)."""
-    filename = f"timesheet{datetime.now().strftime('%Y%m%d')}.csv"
+    date_suffix = datetime.now().strftime('%Y%m%d')
+    if start and end:
+        date_suffix = f"{start}_to_{end}".replace("-", "")
+    filename = f"timesheet{date_suffix}.csv"
     return JSONResponse(status_code=200, content=None, headers={"Content-Disposition": f"attachment; filename={filename}", "Content-Type": "text/csv"})
 
 @app.get("/api/export")
-def export_logs(db: Session = Depends(database.get_db)):
-    logs = db.query(database.TimeLog).join(database.Matter).all()
-    filename = f"timesheet{datetime.now().strftime('%Y%m%d')}.csv"
+def export_logs(start: Optional[str] = None, end: Optional[str] = None, db: Session = Depends(database.get_db)):
+    query = db.query(database.TimeLog).join(database.Matter)
+    
+    if start:
+        try:
+            start_date = datetime.strptime(start, "%Y-%m-%d")
+            query = query.filter(database.TimeLog.log_date >= start_date)
+        except ValueError:
+            pass
+            
+    if end:
+        try:
+            end_date = datetime.strptime(end, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+            query = query.filter(database.TimeLog.log_date <= end_date)
+        except ValueError:
+            pass
+
+    logs = query.all()
+    
+    date_suffix = datetime.now().strftime('%Y%m%d')
+    if start and end:
+        date_suffix = f"{start}_to_{end}".replace("-", "")
+    filename = f"timesheet{date_suffix}.csv"
 
     # Use utf-8-sig (BOM) for Excel compatibility with Thai
     output = io.StringIO()

@@ -203,6 +203,28 @@
 
         </main>
     </div>
+    <!-- Export Options Modal -->
+    <div id="export-options-modal" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2>Export CSV Options</h2>
+                <span class="close-modal" id="close-export-options-modal" onclick="document.getElementById('export-options-modal').style.display = 'none';">&times;</span>
+            </div>
+            <div class="settings-form">
+                <p>Select a date range to export, or leave blank to export all logs.</p>
+                <div class="form-group">
+                    <label for="export-start-date">Start Date</label>
+                    <input type="date" id="export-start-date">
+                </div>
+                <div class="form-group">
+                    <label for="export-end-date">End Date</label>
+                    <input type="date" id="export-end-date">
+                </div>
+                <button id="confirm-export-btn" class="btn save-settings-btn" style="margin-top: 10px;" onclick="executeExport()">Download CSV</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Reset Modal -->
     <div id="reset-modal" class="modal">
         <div class="modal-content">
