@@ -8,7 +8,7 @@ from backend import settings_service
 
 BACKUP_DIR = "backups"
 DB_FILE = "timesheet.db"
-MAX_BACKUPS = 7
+MAX_BACKUPS = 20
 
 def perform_backup():
     """
