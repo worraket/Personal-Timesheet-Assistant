@@ -3,33 +3,35 @@ from sqlalchemy.orm import Session
 from . import database
 from . import settings_service
 
-def get_weekly_stats(db: Session):
-    """Calculate total minutes and units for Monday - Friday of the current week."""
+def get_weekly_stats(db: Session, offset_weeks: int = 0):
+    """Calculate total minutes and units for Monday - Sunday of the selected week."""
     now = datetime.now()
     # Find Monday of this week
-    monday = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+    monday = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(weeks=offset_weeks)
     
-    # Initialize Mon-Fri array
+    # Initialize Mon-Sun array
     stats = [
         {"day": "Mon", "minutes": 0, "units": 0, "date": (monday + timedelta(days=0)).strftime("%Y-%m-%d")},
         {"day": "Tue", "minutes": 0, "units": 0, "date": (monday + timedelta(days=1)).strftime("%Y-%m-%d")},
         {"day": "Wed", "minutes": 0, "units": 0, "date": (monday + timedelta(days=2)).strftime("%Y-%m-%d")},
         {"day": "Thu", "minutes": 0, "units": 0, "date": (monday + timedelta(days=3)).strftime("%Y-%m-%d")},
         {"day": "Fri", "minutes": 0, "units": 0, "date": (monday + timedelta(days=4)).strftime("%Y-%m-%d")},
+        {"day": "Sat", "minutes": 0, "units": 0, "date": (monday + timedelta(days=5)).strftime("%Y-%m-%d")},
+        {"day": "Sun", "minutes": 0, "units": 0, "date": (monday + timedelta(days=6)).strftime("%Y-%m-%d")},
     ]
     
-    friday_end = monday + timedelta(days=4, hours=23, minutes=59, seconds=59)
+    sunday_end = monday + timedelta(days=6, hours=23, minutes=59, seconds=59)
     
-    # Get logs from this Mon to Fri
+    # Get logs from this Mon to Sun
     logs = db.query(database.TimeLog).filter(
         database.TimeLog.log_date >= monday,
-        database.TimeLog.log_date <= friday_end
+        database.TimeLog.log_date <= sunday_end
     ).all()
     
     for log in logs:
-        # 0 = Mon, 4 = Fri
+        # 0 = Mon, 6 = Sun
         day_idx = log.log_date.weekday()
-        if 0 <= day_idx <= 4:
+        if 0 <= day_idx <= 6:
             stats[day_idx]["minutes"] += log.duration_minutes
             stats[day_idx]["units"] += log.units
             

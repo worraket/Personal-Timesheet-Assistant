@@ -1954,6 +1954,18 @@ async function mergeSelectedLogs() {
 
 // ===== DASHBOARD LOGIC =====
 let dashboardVisible = true;
+let currentWeekOffset = 0;
+
+function changeWeekOffset(delta) {
+    currentWeekOffset += delta;
+    if (currentWeekOffset > 0) currentWeekOffset = 0;
+    const nextBtn = document.getElementById('next-week-btn');
+    if (nextBtn) {
+        nextBtn.disabled = currentWeekOffset === 0;
+        nextBtn.style.opacity = currentWeekOffset === 0 ? '0.3' : '1';
+    }
+    loadDashboard();
+}
 
 function toggleDashboard() {
     const container = document.getElementById('dashboard-container');
@@ -1972,7 +1984,7 @@ function toggleDashboard() {
 async function loadDashboard() {
     if (!dashboardVisible) return;
     try {
-        const res = await fetch('/api/dashboard');
+        const res = await fetch(`/api/dashboard?offset=${currentWeekOffset}`);
         if (!res.ok) throw new Error('Failed to load dashboard');
         const data = await res.json();
         renderWeeklyChart(data.weekly_stats);
@@ -1984,11 +1996,36 @@ async function loadDashboard() {
 
 function renderWeeklyChart(stats) {
     const chart = document.getElementById('weekly-chart');
-    const rangeLabel = document.getElementById('dashboard-week-range');
     chart.innerHTML = '';
     if (!stats || stats.length === 0) return;
-    rangeLabel.textContent = `${stats[0].date} - ${stats[stats.length - 1].date}`;
-    const maxMinutes = Math.max(...stats.map(s => s.minutes), 60);
+    
+    // Format YYYY-MM-DD -> MMM DD
+    const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+    const formatMD = (d) => {
+        if (!d) return '';
+        const parts = d.split('-');
+        if (parts.length !== 3) return d;
+        const monthIndex = parseInt(parts[1], 10) - 1;
+        return `${MONTHS[monthIndex]} ${parts[2]}`;
+    };
+    const rangeLabel = document.getElementById('dashboard-week-range');
+    rangeLabel.textContent = `${formatMD(stats[0].date)} \u2192 ${formatMD(stats[stats.length - 1].date)}`;
+    
+    // Y-Axis scale logic: minimum 10 hours, scales up in 2-hour increments
+    let maxLoggedMinutes = Math.max(...stats.map(s => s.minutes));
+    let maxHours = Math.max(10, Math.ceil(maxLoggedMinutes / 60));
+    if (maxHours % 2 !== 0) maxHours++; // Ensure max is even for 2h steps
+    const maxMinutes = maxHours * 60;
+
+    // Draw grid lines
+    for (let h = 2; h <= maxHours; h += 2) {
+        const percentage = ( (h * 60) / maxMinutes ) * 100;
+        const line = document.createElement('div');
+        line.className = 'chart-y-line';
+        line.style.bottom = `${percentage}%`;
+        line.innerHTML = `<span>${h}h</span>`;
+        chart.appendChild(line);
+    }
     stats.forEach(day => {
         const percentage = Math.min((day.minutes / maxMinutes) * 100, 100);
         const container = document.createElement('div');
@@ -2001,7 +2038,11 @@ function renderWeeklyChart(stats) {
         bar.style.height = `${percentage}%`;
         const nameLabel = document.createElement('div');
         nameLabel.className = 'chart-bar-label';
-        nameLabel.textContent = day.day;
+        nameLabel.style.lineHeight = '1.2';
+        
+        // Extract 3rd component of "YYYY-MM-DD"
+        const dateNum = day.date ? day.date.split('-')[2] : '';
+        nameLabel.innerHTML = `${day.day}<br><span style="font-size: 0.85em; color: var(--text-secondary); font-weight: 400;">${dateNum}</span>`;
 
         container.title = `Click to view ${day.minutes}m logged on ${day.date}`;
         container.onclick = () => showDailyLogs(day.date);

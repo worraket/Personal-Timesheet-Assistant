@@ -351,8 +351,8 @@ def delete_matter(matter_id: int, db: Session = Depends(database.get_db)):
     return {"message": "Matter permanently deleted"}
 
 @app.get("/api/dashboard")
-def get_dashboard(db: Session = Depends(database.get_db)):
-    weekly_stats = dashboard_service.get_weekly_stats(db)
+def get_dashboard(offset: int = 0, db: Session = Depends(database.get_db)):
+    weekly_stats = dashboard_service.get_weekly_stats(db, offset_weeks=offset)
     sticky_notes = dashboard_service.get_all_sticky_notes(db)
     return {
         "weekly_stats": weekly_stats,
