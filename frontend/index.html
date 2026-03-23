@@ -211,7 +211,11 @@
                 <span class="close-modal" id="close-export-options-modal" onclick="document.getElementById('export-options-modal').style.display = 'none';">&times;</span>
             </div>
             <div class="settings-form">
-                <p>Select a date range to export, or leave blank to export all logs.</p>
+                <p>Select a date range to export, or use the checkbox below to export all logs.</p>
+                <div class="form-group" style="flex-direction: row; align-items: center; gap: 8px;">
+                    <input type="checkbox" id="export-all-checkbox" checked onchange="toggleExportDates()">
+                    <label for="export-all-checkbox" style="margin: 0; font-weight: 500;">Export All Data</label>
+                </div>
                 <div class="form-group">
                     <label for="export-start-date">Start Date</label>
                     <input type="date" id="export-start-date">

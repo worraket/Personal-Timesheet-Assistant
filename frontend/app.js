@@ -412,17 +412,44 @@ async function removeBackground() {
 }
 
 function openExportModal() {
+    const checkbox = document.getElementById('export-all-checkbox');
+    if (checkbox) {
+        checkbox.checked = true;
+        document.getElementById('export-start-date').disabled = true;
+        document.getElementById('export-end-date').disabled = true;
+        document.getElementById('export-start-date').value = '';
+        document.getElementById('export-end-date').value = '';
+    }
     document.getElementById('export-options-modal').style.display = 'flex';
 }
 
+function toggleExportDates() {
+    const isChecked = document.getElementById('export-all-checkbox').checked;
+    document.getElementById('export-start-date').disabled = isChecked;
+    document.getElementById('export-end-date').disabled = isChecked;
+    if (isChecked) {
+        document.getElementById('export-start-date').value = '';
+        document.getElementById('export-end-date').value = '';
+    }
+}
+
 function executeExport() {
+    const isExportAll = document.getElementById('export-all-checkbox').checked;
     const start = document.getElementById('export-start-date').value;
     const end = document.getElementById('export-end-date').value;
     
+    if (!isExportAll && (!start || !end)) {
+        alert('Please specify both start and end dates, or check "Export All Data" to export everything.');
+        return;
+    }
+    
     let url = `${API_BASE}/export`;
     const params = new URLSearchParams();
-    if (start) params.append('start', start);
-    if (end) params.append('end', end);
+    
+    if (!isExportAll) {
+        params.append('start', start);
+        params.append('end', end);
+    }
     
     if (params.toString()) {
         url += `?${params.toString()}`;
