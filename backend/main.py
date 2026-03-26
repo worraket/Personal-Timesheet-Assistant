@@ -94,6 +94,7 @@ class SettingsRequest(BaseModel):
     ai_key_openai: str = ""
     ai_key_grok: str = ""
     email_subject_patterns: list[str] = []
+    email_body_phrase: str = "will contact you shortly"
 
 @app.get("/api/settings")
 def get_settings():
@@ -135,6 +136,7 @@ def get_settings():
     elif not isinstance(patterns, list):
         patterns = []
     settings["email_subject_patterns"] = patterns
+    settings["email_body_phrase"] = settings_service.get_setting("email_body_phrase", "will contact you shortly")
 
     return settings
 
@@ -169,6 +171,7 @@ def update_settings(request: SettingsRequest):
     
     # Save email parsing patterns
     settings_service.set_setting("email_subject_patterns", request.email_subject_patterns)
+    settings_service.set_setting("email_body_phrase", request.email_body_phrase)
 
     return {"message": "Settings updated successfully"}
 

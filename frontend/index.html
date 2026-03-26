@@ -324,11 +324,17 @@
                 </div>
 
                 <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 10px 0;">
+                <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 10px 0;">
                 <h3 style="font-size: 1rem; margin-bottom: 12px;">Email Parsing Settings</h3>
-                <p class="settings-help">Define regex patterns for Outlook scanning. Each pattern must be on a new line and contain named groups: <code>(?P&lt;matter_id&gt;...)</code> and <code>(?P&lt;matter_name&gt;...)</code>.</p>
+                <p class="settings-help">Define pattern formats for Outlook scanning. Use <code>[ID]</code> and <code>[Matter Name]</code> in place of the real text.<br>Example: <code>RE: Request Form ID: [ID] - [Matter Name][SCG Legal Client Portal]</code></p>
                 <div class="form-group full-width">
                     <label for="email-subject-patterns">Subject Regex Patterns</label>
                     <textarea id="email-subject-patterns" rows="4" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--border-color);"></textarea>
+                </div>
+                <div class="form-group full-width">
+                    <label for="email-body-phrase">Required Body Phrase</label>
+                    <p class="settings-help" style="margin-top: 0; margin-bottom: 8px;">A specific sentence that must appear in the email body to confirm it assigned to you.</p>
+                    <input type="text" id="email-body-phrase" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--border-color);">
                 </div>
 
                 <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 10px 0;">

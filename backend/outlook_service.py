@@ -57,8 +57,8 @@ def get_outlook_matters(identifiers, limit=50, scan_depth=500):
                         patterns = []
                 elif not isinstance(patterns, list) or not patterns:
                     patterns = [
-                        r"RE:\s*Request Form ID:\s*(?P<matter_id>\d+)\s*SCG Legal Client Portal\s*\((?P<matter_name>.*?)\)",
-                        r"RE:\s*Request Form ID:\s*(?P<matter_id>\d+)\s*-\s*(?P<matter_name>.*?)\[SCG Legal Client Portal\]"
+                        "RE: Request Form ID: [ID] SCG Legal Client Portal ([Matter Name])",
+                        "RE: Request Form ID: [ID] - [Matter Name][SCG Legal Client Portal]"
                     ]
                 
                 matter_id = None
@@ -66,6 +66,14 @@ def get_outlook_matters(identifiers, limit=50, scan_depth=500):
                 
                 for pattern in patterns:
                     try:
+                        # Auto-convert user-friendly syntax if it doesn't look like raw regex
+                        if "[ID]" in pattern or "[Matter Name]" in pattern:
+                            safe_pattern = re.escape(pattern)
+                            safe_pattern = safe_pattern.replace(r"\[ID\]", r"(?P<matter_id>\d+)")
+                            safe_pattern = safe_pattern.replace(r"\[Matter\ Name\]", r"(?P<matter_name>.*?)")
+                            safe_pattern = safe_pattern.replace(r"\ ", r"\s*")
+                            pattern = safe_pattern
+
                         match = re.search(pattern, subject, re.IGNORECASE)
                         if match:
                             group_dict = match.groupdict()
@@ -95,7 +103,12 @@ def get_outlook_matters(identifiers, limit=50, scan_depth=500):
                     user_email = identifiers.get('email', 'worraket@scg.com').lower()
                     safe_name = re.escape(user_name)
                     safe_email = re.escape(user_email)
-                    target_regex = f"{safe_name}.*?{safe_email}.*?will contact you shortly"
+                    
+                    from . import settings_service
+                    email_body_phrase = settings_service.get_setting("email_body_phrase", "will contact you shortly")
+                    safe_phrase = re.escape(email_body_phrase.lower())
+                    
+                    target_regex = f"{safe_name}.*?{safe_email}.*?{safe_phrase}"
                     
                     if re.search(target_regex, normalized_body, re.IGNORECASE):
                         # Extract Client Info from Body

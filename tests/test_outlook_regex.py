@@ -3,8 +3,8 @@ import re
 def test_outlook_patterns():
     # 1. Subject Pattern
     subject_patterns = [
-        r"RE:\s*Request Form ID:\s*(?P<matter_id>\d+)\s*SCG Legal Client Portal\s*\((?P<matter_name>.*?)\)",
-        r"RE:\s*Request Form ID:\s*(?P<matter_id>\d+)\s*-\s*(?P<matter_name>.*?)\[SCG Legal Client Portal\]"
+        "RE: Request Form ID: [ID] SCG Legal Client Portal ([Matter Name])",
+        "RE: Request Form ID: [ID] - [Matter Name][SCG Legal Client Portal]"
     ]
     
     test_subjects = [
@@ -18,6 +18,13 @@ def test_outlook_patterns():
     for subj in test_subjects:
         matched = False
         for pattern in subject_patterns:
+            if "[ID]" in pattern or "[Matter Name]" in pattern:
+                safe_pattern = re.escape(pattern)
+                safe_pattern = safe_pattern.replace(r"\[ID\]", r"(?P<matter_id>\d+)")
+                safe_pattern = safe_pattern.replace(r"\[Matter\ Name\]", r"(?P<matter_name>.*?)")
+                safe_pattern = safe_pattern.replace(r"\ ", r"\s*")
+                pattern = safe_pattern
+
             match = re.search(pattern, subj, re.IGNORECASE)
             if match:
                 group_dict = match.groupdict()
