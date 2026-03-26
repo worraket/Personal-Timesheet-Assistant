@@ -2,22 +2,30 @@ import re
 
 def test_outlook_patterns():
     # 1. Subject Pattern
-    # Pattern: RE: Request Form ID: [ID] SCG Legal Client Portal ([Matter Name])
-    subject_pattern = r"RE:\s*Request Form ID:\s*\d+\s*SCG Legal Client Portal\s*\((.*?)\)"
+    subject_patterns = [
+        r"RE:\s*Request Form ID:\s*(?P<matter_id>\d+)\s*SCG Legal Client Portal\s*\((?P<matter_name>.*?)\)",
+        r"RE:\s*Request Form ID:\s*(?P<matter_id>\d+)\s*-\s*(?P<matter_name>.*?)\[SCG Legal Client Portal\]"
+    ]
     
     test_subjects = [
         "RE: Request Form ID: 1234 SCG Legal Client Portal (Project Alpha)",
-        "RE: Request Form ID: 999 SCG Legal Client Portal (Merger with X)",
+        "RE: Request Form ID:1521  - หารือเรื่องการทำ service agreement[SCG Legal Client Portal] [AI Suggests: Legal Affairs]",
         "FW: Request Form ID: 1234 SCG Legal Client Portal (Should Not Match)", # Wrong prefix
         "RE: Other Subject (No Match)"
     ]
     
     print("--- Testing Subject Regex ---")
     for subj in test_subjects:
-        match = re.search(subject_pattern, subj, re.IGNORECASE)
-        if match:
-            print(f"MATCH: '{subj}' -> Matter: '{match.group(1)}'")
-        else:
+        matched = False
+        for pattern in subject_patterns:
+            match = re.search(pattern, subj, re.IGNORECASE)
+            if match:
+                group_dict = match.groupdict()
+                if 'matter_id' in group_dict and 'matter_name' in group_dict:
+                    print(f"MATCH: '{subj}' -> ID: '{group_dict['matter_id']}', Matter: '{group_dict['matter_name']}'")
+                    matched = True
+                    break
+        if not matched:
             print(f"NO MATCH: '{subj}'")
 
     # 2. Body Pattern

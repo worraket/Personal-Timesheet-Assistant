@@ -225,6 +225,17 @@ async function showSettings() {
         document.getElementById('user-full-name').value = settings.full_name || '';
         document.getElementById('user-email').value = settings.email || '';
 
+        // Load Email Parsing Settings
+        const defaultPatterns = [
+            "RE:\\s*Request Form ID:\\s*(?P<matter_id>\\d+)\\s*SCG Legal Client Portal\\s*\\((?P<matter_name>.*?)\\)",
+            "RE:\\s*Request Form ID:\\s*(?P<matter_id>\\d+)\\s*-\\s*(?P<matter_name>.*?)\\[SCG Legal Client Portal\\]"
+        ];
+        let patterns = settings.email_subject_patterns;
+        if (!patterns || !Array.isArray(patterns) || patterns.length === 0) {
+            patterns = defaultPatterns;
+        }
+        document.getElementById('email-subject-patterns').value = patterns.join('\n');
+
         // Load AI settings
         const aiEnabled = settings.ai_enabled === true || settings.ai_enabled === 'true';
         document.getElementById('ai-enabled-toggle').value = aiEnabled ? 'true' : 'false';
@@ -282,9 +293,13 @@ async function saveSettings() {
     const btn = document.getElementById('save-settings-btn');
     const originalText = btn.innerText;
 
+    const patternsText = document.getElementById('email-subject-patterns').value;
+    const patternsList = patternsText.split('\n').map(p => p.trim()).filter(p => p.length > 0);
+
     const settings = {
         full_name: document.getElementById('user-full-name').value.trim(),
         email: document.getElementById('user-email').value.trim(),
+        email_subject_patterns: patternsList,
         ui_bg_gradient_start: document.getElementById('theme-bg-start').value,
         ui_bg_gradient_end: document.getElementById('theme-bg-end').value,
         ui_bg_image_url: document.getElementById('theme-bg-image-url').value,

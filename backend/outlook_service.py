@@ -46,17 +46,39 @@ def get_outlook_matters(identifiers, limit=50, scan_depth=500):
                 
                 subject = subject.strip()
                 
-                # Pattern: RE: Request Form ID: [ID] SCG Legal Client Portal ([Matter Name])
-                # Example: RE: Request Form ID: 1440 SCG Legal Client Portal (Stark Energy - Solar EPC Contract...)
-                subject_pattern = r"RE:\s*Request Form ID:\s*(\d+)\s*SCG Legal Client Portal\s*\((.*?)\)"
-                match = re.search(subject_pattern, subject, re.IGNORECASE)
+                # Load email parsing patterns
+                from . import settings_service
+                patterns = settings_service.get_setting("email_subject_patterns", [])
+                if isinstance(patterns, str) and patterns:
+                    try:
+                        import json
+                        patterns = json.loads(patterns)
+                    except Exception:
+                        patterns = []
+                elif not isinstance(patterns, list) or not patterns:
+                    patterns = [
+                        r"RE:\s*Request Form ID:\s*(?P<matter_id>\d+)\s*SCG Legal Client Portal\s*\((?P<matter_name>.*?)\)",
+                        r"RE:\s*Request Form ID:\s*(?P<matter_id>\d+)\s*-\s*(?P<matter_name>.*?)\[SCG Legal Client Portal\]"
+                    ]
                 
-                if not match:
+                matter_id = None
+                matter_name = None
+                
+                for pattern in patterns:
+                    try:
+                        match = re.search(pattern, subject, re.IGNORECASE)
+                        if match:
+                            group_dict = match.groupdict()
+                            if 'matter_id' in group_dict and 'matter_name' in group_dict:
+                                matter_id = group_dict['matter_id'].strip()
+                                matter_name = group_dict['matter_name'].strip()
+                                break
+                    except re.error:
+                        # Skip invalid user-provided regex patterns
+                        continue
+                
+                if not matter_id or not matter_name:
                     continue
-                
-                # Extract Matter ID and Name
-                matter_id = match.group(1).strip()
-                matter_name = match.group(2).strip()
                 
                 print(f"DEBUG: Subject matched and extracted: {matter_id} - {matter_name}")
 

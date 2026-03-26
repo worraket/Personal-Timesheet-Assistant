@@ -324,6 +324,14 @@
                 </div>
 
                 <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 10px 0;">
+                <h3 style="font-size: 1rem; margin-bottom: 12px;">Email Parsing Settings</h3>
+                <p class="settings-help">Define regex patterns for Outlook scanning. Each pattern must be on a new line and contain named groups: <code>(?P&lt;matter_id&gt;...)</code> and <code>(?P&lt;matter_name&gt;...)</code>.</p>
+                <div class="form-group full-width">
+                    <label for="email-subject-patterns">Subject Regex Patterns</label>
+                    <textarea id="email-subject-patterns" rows="4" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--border-color);"></textarea>
+                </div>
+
+                <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 10px 0;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                     <h3 style="font-size: 1rem; margin: 0;">AI Assistant Settings</h3>
                     <div id="ai-toggle-wrapper" onclick="toggleAiEnabled()"

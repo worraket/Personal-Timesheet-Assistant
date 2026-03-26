@@ -93,6 +93,7 @@ class SettingsRequest(BaseModel):
     ai_key_gemini: str = ""
     ai_key_openai: str = ""
     ai_key_grok: str = ""
+    email_subject_patterns: list[str] = []
 
 @app.get("/api/settings")
 def get_settings():
@@ -122,6 +123,19 @@ def get_settings():
     settings["ai_key_gemini"] = settings_service.get_setting("ai_key_gemini", "")
     settings["ai_key_openai"] = settings_service.get_setting("ai_key_openai", "")
     settings["ai_key_grok"] = settings_service.get_setting("ai_key_grok", "")
+    
+    # Email parsing patterns
+    patterns = settings_service.get_setting("email_subject_patterns", [])
+    if isinstance(patterns, str) and patterns:
+        try:
+            import json
+            patterns = json.loads(patterns)
+        except Exception:
+            patterns = []
+    elif not isinstance(patterns, list):
+        patterns = []
+    settings["email_subject_patterns"] = patterns
+
     return settings
 
 @app.post("/api/settings")
@@ -152,6 +166,10 @@ def update_settings(request: SettingsRequest):
     settings_service.set_setting("ai_key_gemini", request.ai_key_gemini)
     settings_service.set_setting("ai_key_openai", request.ai_key_openai)
     settings_service.set_setting("ai_key_grok", request.ai_key_grok)
+    
+    # Save email parsing patterns
+    settings_service.set_setting("email_subject_patterns", request.email_subject_patterns)
+
     return {"message": "Settings updated successfully"}
 
 @app.post("/api/upload/background")
