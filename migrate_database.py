@@ -42,6 +42,7 @@ EXPECTED_SCHEMA = {
         {"name": "source_email_id", "type": "VARCHAR", "notnull": False, "default": None},
         {"name": "created_at",      "type": "DATETIME","notnull": False, "default": None},
         {"name": "ai_tags",         "type": "TEXT",    "notnull": False, "default": None},
+        {"name": "working_folder",  "type": "TEXT",    "notnull": False, "default": None},
     ],
     "time_logs": [
         {"name": "id",               "type": "INTEGER", "notnull": True,  "default": None},
@@ -123,6 +124,13 @@ MIGRATIONS = [
         "table": "matters",
         "column": "ai_tags",
         "sql": "ALTER TABLE matters ADD COLUMN ai_tags TEXT",
+    },
+    {
+        "id": "009",
+        "description": "Add working_folder column to matters",
+        "table": "matters",
+        "column": "working_folder",
+        "sql": "ALTER TABLE matters ADD COLUMN working_folder TEXT",
     },
 ]
 
