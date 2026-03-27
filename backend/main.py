@@ -311,6 +311,7 @@ class MatterUpdateRequest(BaseModel):
     status_flag: Optional[str] = None
     is_closed: Optional[bool] = None
     ai_tags: Optional[str] = None
+    working_folder: Optional[str] = None
 
 @app.post("/api/matters/manual")
 def add_matter_manual(request: MatterManualRequest, background_tasks: BackgroundTasks, db: Session = Depends(database.get_db)):
@@ -359,6 +360,8 @@ def update_matter(matter_id: int, request: MatterUpdateRequest, db: Session = De
         matter.is_closed = request.is_closed
     if request.ai_tags is not None:
         matter.ai_tags = request.ai_tags
+    if request.working_folder is not None:
+        matter.working_folder = None if request.working_folder.strip() == "" else request.working_folder
         
     db.commit()
     db.refresh(matter)
@@ -952,12 +955,15 @@ def open_folder(request: OpenFolderRequest, db: Session = Depends(database.get_d
     if not matter:
         raise HTTPException(status_code=404, detail="Matter not found")
         
-    if matter.working_folder and os.path.exists(matter.working_folder):
-        try:
-            os.startfile(matter.working_folder)
-            return {"message": "Folder opened successfully", "path": matter.working_folder}
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to open folder: {str(e)}")
+    if matter.working_folder:
+        if os.path.exists(matter.working_folder):
+            try:
+                os.startfile(matter.working_folder)
+                return {"message": "Folder opened successfully", "path": matter.working_folder}
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Failed to open folder: {str(e)}")
+        else:
+            raise HTTPException(status_code=404, detail="FOLDER_NOT_FOUND_OR_MOVED")
             
     # Handle linking an existing custom path
     if request.custom_path:

@@ -1614,6 +1614,7 @@ function openMatterDetails(matter) {
     document.getElementById('detail-client-email').value = matter.client_email || '';
     document.getElementById('detail-description').value = matter.description || '';
     document.getElementById('detail-ai-tags').value = matter.ai_tags || '';
+    document.getElementById('detail-working-folder').value = matter.working_folder || '';
     document.getElementById('detail-status').value = matter.status_flag || 'yellow';
 
     // Update Close/Re-open button state
@@ -1721,6 +1722,14 @@ async function submitWorkingFolder(category, customPath) {
 
         if (!response.ok) {
             const error = await response.json();
+            if (response.status === 404 && error.detail === 'FOLDER_NOT_FOUND_OR_MOVED') {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                if (confirm("The linked folder could not be found. It may have been moved or deleted.\n\nWould you like to locate the new folder?")) {
+                    browseNativeFolder();
+                }
+                return;
+            }
             throw new Error(error.detail || 'Failed to open folder');
         }
 
@@ -1828,6 +1837,20 @@ function toggleClosedMattersVisibility() {
     renderMatters(allMatters);
 }
 
+async function browseForDetailsFolder() {
+    try {
+        const response = await fetch(`${API_BASE}/browse-folder`);
+        if (!response.ok) throw new Error("Failed to open browser dialog.");
+        
+        const data = await response.json();
+        if (data.path) {
+            document.getElementById('detail-working-folder').value = data.path;
+        }
+    } catch (e) {
+        alert("Error picking folder: " + e.message);
+    }
+}
+
 async function saveMatterDetails() {
     if (!currentEditingMatter) return;
 
@@ -1843,6 +1866,7 @@ async function saveMatterDetails() {
         client_email: document.getElementById('detail-client-email').value,
         description: document.getElementById('detail-description').value,
         ai_tags: document.getElementById('detail-ai-tags').value,
+        working_folder: document.getElementById('detail-working-folder').value || "",
         status_flag: document.getElementById('detail-status').value
     };
 

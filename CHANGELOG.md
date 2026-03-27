@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 - **Auto Folder Management**: Introduced a configurable "Folder Root Path" setting. You can now automatically generate standard working folders (`[Category] - [Matter Name] - [ID]`) directly from the Matter Details window to organize your downloaded documents.
 - **Native Folder Picker**: Added a new UI flow that allows you to "Link Existing Folder" using a native Windows folder browser dialog, completely skipping the need to manually copy and paste long file paths.
+- **Broken Link Detection**: Added a smart detection system for moved or deleted folders. It now politely prompts you to relocate the folder via the native folder picker instead of blindly generating a hollow duplicate.
+- **Manual Relocation**: The "Matter Details" edit window now features a dedicated "Working Folder Path" row with a native "Browse..." button, allowing you to surgically unlink, edit, or relocate folders instantly.
 - **Automated Schema Update**: Integrated the new `working_folder` database column into the automated `migrate_database.py` script so that `run_assistant.bat` handles DB migrations seamlessly.
 
 ## [1.4.2] - 2026-03-05
