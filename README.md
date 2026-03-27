@@ -13,6 +13,7 @@ A local web app for **lawyers and legal professionals** to track billable time a
 | 🔐 **Encrypted API Keys** | All API keys stored locally in encrypted `secrets.enc` using Windows DPAPI — never plain text, never cloud |
 | ⏱️ **Timer Button** | Start/pause/resume a live timer next to Log Time, then stop and log with a description |
 | 📧 **Outlook Scanner** | Scans your local Outlook inbox to automatically discover matters from email subjects/bodies |
+| 📂 **Folder Management** | Automatically generate structured working folders, or securely link existing folders using a native Windows Picker directly from the UI |
 | 📋 **Matter Management** | Add, edit, and view all matters including client name, client email, external ID, and description |
 | 📊 **Main Dashboard** | Integrated activity dashboard featuring a Monday-Friday bar chart and an editable Sticky Note Reminder Board |
 | 💾 **Automatic Backups** | Daily local backups (max 7-day retention) of the SQLite database and settings to prevent data loss |
@@ -29,6 +30,9 @@ A local web app for **lawyers and legal professionals** to track billable time a
 ## 📅 Version History
 
 See the **[CHANGELOG.md](CHANGELOG.md)** for a complete history of updates.
+
+### What's New in v1.5.0
+- **Auto Folder Management & Native Picker**: Automatically generate standard working folders (`[Category] - [Matter Name] - [ID]`) or securely link existing ones using a beautiful native Windows folder browser invoked straight from the local web interface.
 
 ### What's New in v1.4.0
 - **Chat Bubble Customization**: Added deep customization for chat bubbles. You can now pick exact hex colors for both User and AI messages in the Settings modal with real-time live preview.
@@ -211,6 +215,8 @@ Settings are stored in `settings.json` (not in the database). You can edit them 
 | `GET` | `/api/matters` | List all matters |
 | `POST` | `/api/matters/manual` | Add a matter manually |
 | `PUT` | `/api/matters/{id}` | Update a matter |
+| `POST` | `/api/open-folder` | Opens or auto-creates a structured working folder for a matter |
+| `GET` | `/api/browse-folder` | Summons a native Windows FolderBrowserDialog to pick an existing folder |
 | `POST` | `/api/scan` | Scan Outlook for new matters |
 | `POST` | `/api/log` | Log time via natural language text (AI-first if enabled, otherwise NLP) |
 | `POST` | `/api/log/direct` | Log time directly (matter_id + duration_minutes) |

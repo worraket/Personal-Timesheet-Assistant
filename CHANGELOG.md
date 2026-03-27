@@ -4,6 +4,13 @@ All notable changes to the **Personal Timesheet Assistant** will be documented i
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to Semantic Versioning.
 
+## [1.5.0] - 2026-03-27
+
+### Added
+- **Auto Folder Management**: Introduced a configurable "Folder Root Path" setting. You can now automatically generate standard working folders (`[Category] - [Matter Name] - [ID]`) directly from the Matter Details window to organize your downloaded documents.
+- **Native Folder Picker**: Added a new UI flow that allows you to "Link Existing Folder" using a native Windows folder browser dialog, completely skipping the need to manually copy and paste long file paths.
+- **Automated Schema Update**: Integrated the new `working_folder` database column into the automated `migrate_database.py` script so that `run_assistant.bat` handles DB migrations seamlessly.
+
 ## [1.4.2] - 2026-03-05
 
 ### Fixed
