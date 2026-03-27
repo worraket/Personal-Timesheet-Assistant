@@ -955,17 +955,7 @@ def open_folder(request: OpenFolderRequest, db: Session = Depends(database.get_d
     if not matter:
         raise HTTPException(status_code=404, detail="Matter not found")
         
-    if matter.working_folder:
-        if os.path.exists(matter.working_folder):
-            try:
-                os.startfile(matter.working_folder)
-                return {"message": "Folder opened successfully", "path": matter.working_folder}
-            except Exception as e:
-                raise HTTPException(status_code=500, detail=f"Failed to open folder: {str(e)}")
-        else:
-            raise HTTPException(status_code=404, detail="FOLDER_NOT_FOUND_OR_MOVED")
-            
-    # Handle linking an existing custom path
+    # Handle linking an existing custom path first
     if request.custom_path:
         if not os.path.exists(request.custom_path):
             raise HTTPException(status_code=400, detail=f"The provided path does not exist: {request.custom_path}")
@@ -976,6 +966,17 @@ def open_folder(request: OpenFolderRequest, db: Session = Depends(database.get_d
             return {"message": "Folder linked and opened successfully", "path": request.custom_path}
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Folder linked but failed to open: {str(e)}")
+
+    # If they are not actively trying to link a new folder, check the existing one
+    if not request.category and matter.working_folder:
+        if os.path.exists(matter.working_folder):
+            try:
+                os.startfile(matter.working_folder)
+                return {"message": "Folder opened successfully", "path": matter.working_folder}
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Failed to open folder: {str(e)}")
+        else:
+            raise HTTPException(status_code=404, detail="FOLDER_NOT_FOUND_OR_MOVED")
             
     # Generate new folder path
     root_path = settings_service.get_setting("folder_root_path", "C:\\Users\\worraket\\OneDrive - The Siam Cement Public Company Limited\\Works")
