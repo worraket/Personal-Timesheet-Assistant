@@ -95,6 +95,7 @@ class SettingsRequest(BaseModel):
     ai_key_grok: str = ""
     email_subject_patterns: list[str] = []
     email_body_phrase: str = "will contact you shortly"
+    folder_root_path: str = "C:\\Users\\worraket\\OneDrive - The Siam Cement Public Company Limited\\Works"
 
 @app.get("/api/settings")
 def get_settings():
@@ -137,6 +138,7 @@ def get_settings():
         patterns = []
     settings["email_subject_patterns"] = patterns
     settings["email_body_phrase"] = settings_service.get_setting("email_body_phrase", "will contact you shortly")
+    settings["folder_root_path"] = settings_service.get_setting("folder_root_path", "C:\\Users\\worraket\\OneDrive - The Siam Cement Public Company Limited\\Works")
 
     return settings
 
@@ -172,6 +174,7 @@ def update_settings(request: SettingsRequest):
     # Save email parsing patterns
     settings_service.set_setting("email_subject_patterns", request.email_subject_patterns)
     settings_service.set_setting("email_body_phrase", request.email_body_phrase)
+    settings_service.set_setting("folder_root_path", request.folder_root_path)
 
     return {"message": "Settings updated successfully"}
 
@@ -250,7 +253,8 @@ def get_matters(db: Session = Depends(database.get_db)):
             "is_closed": m.is_closed,
             "source_email_id": m.source_email_id,
             "created_at": m.created_at,
-            "ai_tags": m.ai_tags
+            "ai_tags": m.ai_tags,
+            "working_folder": getattr(m, 'working_folder', None)
         }
         results.append(matter_dict)
     return results
@@ -908,5 +912,97 @@ def get_summary(db: Session = Depends(database.get_db)):
         },
         "grand_total_units": sum(l.units for l in logs)
     }
+
+@app.get("/api/browse-folder")
+def browse_folder():
+    import subprocess
+    ps_script = """
+    Add-Type -AssemblyName System.windows.forms;
+    $f = New-Object System.Windows.Forms.FolderBrowserDialog;
+    $f.Description = 'Select a Working Folder';
+    $f.ShowNewFolderButton = $true;
+    $form = New-Object System.Windows.Forms.Form;
+    $form.TopMost = $true;
+    if ($f.ShowDialog($form) -eq 'OK') {
+        Write-Output $f.SelectedPath
+    }
+    """
+    try:
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        
+        result = subprocess.run(["powershell", "-NoProfile", "-Command", ps_script], 
+                              capture_output=True, text=True, startupinfo=startupinfo)
+        path = result.stdout.strip()
+        if path:
+            return {"path": path}
+        else:
+            return {"path": None}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+class OpenFolderRequest(BaseModel):
+    matter_id: int
+    category: Optional[str] = None
+    custom_path: Optional[str] = None
+
+@app.post("/api/open-folder")
+def open_folder(request: OpenFolderRequest, db: Session = Depends(database.get_db)):
+    matter = db.query(database.Matter).filter(database.Matter.id == request.matter_id).first()
+    if not matter:
+        raise HTTPException(status_code=404, detail="Matter not found")
+        
+    if matter.working_folder and os.path.exists(matter.working_folder):
+        try:
+            os.startfile(matter.working_folder)
+            return {"message": "Folder opened successfully", "path": matter.working_folder}
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to open folder: {str(e)}")
+            
+    # Handle linking an existing custom path
+    if request.custom_path:
+        if not os.path.exists(request.custom_path):
+            raise HTTPException(status_code=400, detail=f"The provided path does not exist: {request.custom_path}")
+        matter.working_folder = request.custom_path
+        db.commit()
+        try:
+            os.startfile(request.custom_path)
+            return {"message": "Folder linked and opened successfully", "path": request.custom_path}
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Folder linked but failed to open: {str(e)}")
+            
+    # Generate new folder path
+    root_path = settings_service.get_setting("folder_root_path", "C:\\Users\\worraket\\OneDrive - The Siam Cement Public Company Limited\\Works")
+    if not root_path:
+        raise HTTPException(status_code=400, detail="Folder root path is not configured in settings")
+        
+    # Clean matter name for filesystem
+    import re
+    clean_name = re.sub(r'[\\/*?:"<>|]', "", matter.name).strip()
+    matter_identifier = matter.external_id if matter.external_id else str(matter.id)
+    clean_id = re.sub(r'[\\/*?:"<>|]', "", matter_identifier).strip()
+    
+    # Construct exact text
+    folder_name = ""
+    if request.category:
+        clean_category = re.sub(r'[\\/*?:"<>|]', "", request.category).strip()
+        folder_name = f"{clean_category} - {clean_name} - {clean_id}"
+    else:
+        folder_name = f"{clean_name} - {clean_id}"
+        
+    new_path = os.path.join(root_path, folder_name)
+    
+    try:
+        os.makedirs(new_path, exist_ok=True)
+        matter.working_folder = new_path
+        db.commit()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create folder: {str(e)}")
+        
+    try:
+        os.startfile(new_path)
+        return {"message": "Folder created and opened successfully", "path": new_path}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Folder created but failed to open: {str(e)}")
 
 app.mount("/", StaticFiles(directory="frontend", html=True), name="static")

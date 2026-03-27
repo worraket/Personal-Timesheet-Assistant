@@ -24,6 +24,7 @@ class Matter(Base):
     source_email_id = Column(String, unique=True, index=True, nullable=True) # To prevent duplicate scans
     created_at = Column(DateTime, default=datetime.now)
     ai_tags = Column(String, nullable=True) # Automatically generated semantic tags for search
+    working_folder = Column(String, nullable=True) # Stores the local directory path
 
     time_logs = relationship("TimeLog", back_populates="matter")
 

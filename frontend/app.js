@@ -1628,6 +1628,18 @@ function openMatterDetails(matter) {
         }
     }
 
+    // Update Working Folder button state
+    const folderBtn = document.getElementById('open-working-folder-btn');
+    if (folderBtn) {
+        if (matter.working_folder) {
+            folderBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg> Open Folder';
+            folderBtn.title = `Opens: ${matter.working_folder}`;
+        } else {
+            folderBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg> Create Folder';
+            folderBtn.title = 'Generates a new working folder for this matter';
+        }
+    }
+
     // Reset Add Time panel
     document.getElementById('detail-add-time-panel').style.display = 'none';
     document.getElementById('detail-log-duration').value = '';
@@ -1641,6 +1653,96 @@ function openMatterDetails(matter) {
 
     // Show Modal
     document.getElementById('matter-details-modal').style.display = 'block';
+}
+
+async function openWorkingFolder() {
+    if (!currentEditingMatter) return;
+    
+    if (!currentEditingMatter.working_folder) {
+        document.getElementById('folder-category-input').value = '';
+        document.getElementById('link-folder-modal').style.display = 'block';
+        return;
+    }
+    
+    submitWorkingFolder(null, null);
+}
+
+function submitAutoCreateFolder() {
+    const category = document.getElementById('folder-category-input').value.trim();
+    if (!category) {
+        alert("Please enter a category.");
+        return;
+    }
+    document.getElementById('link-folder-modal').style.display = 'none';
+    submitWorkingFolder(category, null);
+}
+
+async function browseNativeFolder() {
+    const btn = document.getElementById('btn-browse-folder');
+    const origHtml = btn.innerHTML;
+    btn.innerHTML = 'Browsing...';
+    btn.disabled = true;
+    
+    try {
+        const response = await fetch(`${API_BASE}/browse-folder`);
+        if (!response.ok) throw new Error("Failed to open browser dialog.");
+        
+        const data = await response.json();
+        if (data.path) {
+            document.getElementById('link-folder-modal').style.display = 'none';
+            submitWorkingFolder(null, data.path);
+        } else {
+            // User cancelled, do nothing
+        }
+    } catch (e) {
+        alert("Error picking folder: " + e.message);
+    } finally {
+        btn.innerHTML = origHtml;
+        btn.disabled = false;
+    }
+}
+
+async function submitWorkingFolder(category, customPath) {
+    const btn = document.getElementById('open-working-folder-btn');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> Opening...';
+    btn.disabled = true;
+
+    try {
+        const response = await fetch(`${API_BASE}/open-folder`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                matter_id: currentEditingMatter.id,
+                category: category || null,
+                custom_path: customPath || null
+            })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Failed to open folder');
+        }
+
+        const data = await response.json();
+        currentEditingMatter.working_folder = data.path;
+        
+        // Refresh the button UI
+        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg> Opened';
+        btn.title = `Opens: ${data.path}`;
+        
+        setTimeout(() => {
+            btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg> Open Folder';
+            btn.disabled = false;
+        }, 1500);
+        
+        // Refresh matters list in the background so the model has the path
+        loadMatters();
+    } catch (e) {
+        alert('Error: ' + e.message);
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
 }
 
 function toggleAddTimePanel() {

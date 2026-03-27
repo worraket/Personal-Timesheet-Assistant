@@ -322,6 +322,11 @@
                     <label for="user-email">Work Email</label>
                     <input type="email" id="user-email" placeholder="john.doe@scg.com">
                 </div>
+                <div class="form-group full-width">
+                    <label for="folder-root-path">Folder Root Path</label>
+                    <p class="settings-help" style="margin-top: 0; margin-bottom: 8px;">The root directory where working folders will be created.</p>
+                    <input type="text" id="folder-root-path" placeholder="C:\Users\worraket\OneDrive - The Siam Cement Public Company Limited\Works" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--border-color);">
+                </div>
 
                 <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 10px 0;">
                 <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 10px 0;">
@@ -564,13 +569,50 @@
     </div>
 
 
+    <!-- Link or Create Folder Modal -->
+    <div id="link-folder-modal" class="modal" style="z-index: 1250;">
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="modal-header">
+                <h2>Set Working Folder</h2>
+                <span class="close-modal" id="close-link-folder-modal" onclick="document.getElementById('link-folder-modal').style.display = 'none';">&times;</span>
+            </div>
+            <div class="settings-form">
+                <p style="color: var(--text-secondary); margin-bottom: 20px;">Choose how you want to set the working folder for this matter.</p>
+                
+                <div style="background: var(--input-bg); padding: 16px; border-radius: 12px; margin-bottom: 16px; border: 1px solid var(--border-color);">
+                    <h3 style="margin-top: 0; margin-bottom: 8px; font-size: 1.05rem;">Option 1: Auto-Create</h3>
+                    <p style="margin-top: 0; margin-bottom: 12px; font-size: 0.9rem; color: var(--text-secondary);">Enter a category (e.g. SPA) to generate a new folder automatically.</p>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="folder-category-input" placeholder="e.g. SPA" style="flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-color);" onkeypress="if(event.key === 'Enter') submitAutoCreateFolder();">
+                        <button id="btn-auto-create-folder" class="btn save-settings-btn" style="margin-top: 0; padding: 8px 16px;" onclick="submitAutoCreateFolder()">Create</button>
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin-bottom: 16px; color: var(--text-secondary); font-weight: bold;">OR</div>
+
+                <div style="background: var(--input-bg); padding: 16px; border-radius: 12px; border: 1px solid var(--border-color);">
+                    <h3 style="margin-top: 0; margin-bottom: 8px; font-size: 1.05rem;">Option 2: Link Existing Folder</h3>
+                    <p style="margin-top: 0; margin-bottom: 12px; font-size: 0.9rem; color: var(--text-secondary);">Use your mouse to browse and select an existing folder on your computer.</p>
+                    <button id="btn-browse-folder" class="btn" style="width: 100%; background: var(--manual-btn-bg); color: var(--text-primary); padding: 10px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 8px;" onclick="browseNativeFolder()">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                        Browse Folders...
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Matter Details Modal -->
     <div id="matter-details-modal" class="modal" style="z-index: 1100;">
         <div class="modal-content large-modal" style="position: relative;">
             <span class="close-btn"
                 onclick="document.getElementById('matter-details-modal').style.display='none'">&times;</span>
-            <div class="modal-header">
-                <h2 id="details-modal-title">Matter Details</h2>
+            <div class="modal-header" style="justify-content: space-between; align-items: center; padding-right: 30px; display: flex; width: 100%;">
+                <h2 id="details-modal-title" style="margin: 0;">Matter Details</h2>
+                <button id="open-working-folder-btn" class="btn" style="background-color: var(--log-btn-bg, #007AFF); color: white; display: flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 0.85rem;" onclick="openWorkingFolder()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                    Working Folder
+                </button>
             </div>
 
             <div class="settings-form">
